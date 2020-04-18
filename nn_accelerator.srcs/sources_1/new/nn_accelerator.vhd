@@ -276,6 +276,22 @@ begin
     );
     
 
+    conv_engine : entity work.convolution_engine
+    port map (
+        clk             => clk,
+        i_start         => start,
+        in_bram_en      => in_bram_en_b,
+        in_bram_addr    => in_bram_addr_b,
+        in_bram_rddata  => in_bram_rddata_b,
+        out_bram_en     => out_bram_en_a,
+        out_bram_we     => out_bram_we_a(0),
+        out_bram_addr   => out_bram_addr_a,
+        out_bram_wrdata => out_bram_wrdata_a,
+        w_bram_en       => w_bram_en_b,
+        w_bram_addr     => w_bram_addr_b,
+        w_bram_rddata   => w_bram_rddata_b
+    );
+
     in_block_ram : in_bram
     port map (
         clka            => clk,
