@@ -8,7 +8,8 @@ entity nn_accelerator is
     port (
         clk             : in std_logic;
         rstn            : in std_logic;
-
+        
+        -- Control interface
         s00_axi_awaddr  : in std_logic_vector(3 downto 0);
         s00_axi_awprot  : in std_logic_vector(2 downto 0);
         s00_axi_awvalid : in std_logic;
@@ -29,6 +30,7 @@ entity nn_accelerator is
         s00_axi_rvalid  : out std_logic;
         s00_axi_rready  : in std_logic;
         
+        -- in block ram interface
         s01_axi_awaddr  : in std_logic_vector(17 downto 0);
         s01_axi_awprot  : in std_logic_vector(2 downto 0);
         s01_axi_awvalid : in std_logic;
@@ -48,7 +50,8 @@ entity nn_accelerator is
         s01_axi_rresp   : out std_logic_vector(1 downto 0);
         s01_axi_rvalid  : out std_logic;
         s01_axi_rready  : in std_logic;
-
+        
+        -- out block ram interface
         s02_axi_awaddr  : in std_logic_vector(15 downto 0);
         s02_axi_awprot  : in std_logic_vector(2 downto 0);
         s02_axi_awvalid : in std_logic;
@@ -68,7 +71,8 @@ entity nn_accelerator is
         s02_axi_rresp   : out std_logic_vector(1 downto 0);
         s02_axi_rvalid  : out std_logic;
         s02_axi_rready  : in std_logic;
-
+        
+        -- weights block ram interface
         s03_axi_awaddr  : in std_logic_vector(15 downto 0);
         s03_axi_awprot  : in std_logic_vector(2 downto 0);
         s03_axi_awvalid : in std_logic;
@@ -92,6 +96,9 @@ entity nn_accelerator is
 end nn_accelerator;
 
 architecture arch of nn_accelerator is
+    
+    -- temporary start signal
+    signal start : std_logic;
 
     signal in_bram_en_a     : std_logic;
     signal in_bram_we_a     : std_logic_vector(3 downto 0);
@@ -260,6 +267,15 @@ architecture arch of nn_accelerator is
 
 begin
 
+    -- temporary start module
+    start_mod : entity work.start_module
+        port map (
+            clk => clk,
+            rstn => rstn,
+            start => start
+        );
+            
+
     in_block_ram : in_bram
         port map (
             clka            => clk,
@@ -356,7 +372,7 @@ begin
             s_axi_rready    => s02_axi_rready,
             bram_rst_a      => open,
             bram_clk_a      => open,
-            bram_en_a       => out_bram_en_a,
+            bram_en_a       => out_bram_en_b,
             bram_we_a       => open,
             bram_addr_a     => out_bram_addr_b,
             bram_wrdata_a   => open,
