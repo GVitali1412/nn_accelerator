@@ -36,6 +36,21 @@ architecture arch of convolution_engine is
 
 begin
 
+    convolution_controller : entity work.controller
+    port map (
+        clk             => clk,
+        i_start         => i_start,
+        o_clearAccum    => s_clearAccum,
+        o_inBramEn      => in_bram_en,
+        o_inBramAddr    => in_bram_addr,
+        o_outBramEn     => out_bram_en,
+        o_outBramWe     => out_bram_we,
+        o_outBramAddr   => out_bram_addr,
+        o_wgsBramEn     => w_bram_en,
+        o_wgsBramAddr   => w_bram_addr
+    );
+
+
     convolution_units : for i in 0 to NUMBER_CU-1 generate
         cu : entity work.compute_unit
         port map (
