@@ -9,7 +9,7 @@ entity counters is
         FILTER_DEPTH    : positive := 1;
         X_LENGTH        : positive := 13;
         Y_LENGTH        : positive := 13;
-        MAP_SIZE        : positive := X_LENGTH * Y_LENGTH
+        MAP_SIZE        : positive := (X_LENGTH+2) * (Y_LENGTH+2)
     );
     port (
         clk             : in std_logic;
@@ -75,7 +75,7 @@ begin
             if i_start = '1' then
                 s_mapPos <= 16;  -- Initial position
             elsif s_kernelPos = KERNEL_SIZE+2 then
-                if s_mapPos = MAP_SIZE-1 then
+                if s_xPos = X_LENGTH-1 and s_yPos = Y_LENGTH-1 then
                     s_mapPos <= 16;
                 elsif s_xPos = X_LENGTH-1 then
                     s_mapPos <= s_mapPos + 3;  -- Jump to the next row

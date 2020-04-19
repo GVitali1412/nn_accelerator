@@ -7,7 +7,7 @@ entity addr_generator is
     generic (
         KERNEL_SIZE     : positive := 9;
         FILTER_DEPTH    : positive := 1;
-        MAP_SIZE        : positive := 13 * 13
+        MAP_SIZE        : positive := 15 * 15
     );
     port (
         clk             : in std_logic;
