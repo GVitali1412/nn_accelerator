@@ -99,6 +99,12 @@ architecture arch of nn_accelerator is
     
     -- temporary start signal
     signal start : std_logic;
+    signal started : std_logic := '0';
+    
+    signal s_ctrlReg0       : std_logic_vector(31 downto 0);
+    signal s_ctrlReg1       : std_logic_vector(31 downto 0);
+    signal s_ctrlReg2       : std_logic_vector(31 downto 0);
+    signal s_ctrlReg3       : std_logic_vector(31 downto 0);
 
     signal in_bram_en_a     : std_logic;
     signal in_bram_we_a     : std_logic_vector(3 downto 0);
@@ -267,14 +273,44 @@ architecture arch of nn_accelerator is
 
 begin
 
-    -- temporary start module
-    start_mod : entity work.start_module
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            if started = '0' and s_ctrlReg0(0) = '1' then
+                started <= '1';
+                start <= '1';
+            else
+                start <= '0';
+            end if;
+        end if;
+    end process;
+
+    control_registers : entity work.axi4lite_controls
     port map (
         clk             => clk,
         rstn            => rstn,
-        start           => start
+        o_reg0          => s_ctrlReg0,
+        o_reg1          => s_ctrlReg1,
+        o_reg2          => s_ctrlReg2,
+        o_reg3          => s_ctrlReg3,
+        axi_awaddr      => s00_axi_awaddr,
+        axi_awvalid     => s00_axi_awvalid,
+        axi_awready     => s00_axi_awready,
+        axi_wdata       => s00_axi_wdata,
+        axi_wstrb       => s00_axi_wstrb,
+        axi_wvalid      => s00_axi_wvalid,
+        axi_wready      => s00_axi_wready,
+        axi_bresp       => s00_axi_bresp,
+        axi_bvalid      => s00_axi_bvalid,
+        axi_bready      => s00_axi_bready,
+        axi_araddr      => s00_axi_araddr,
+        axi_arvalid     => s00_axi_arvalid,
+        axi_arready     => s00_axi_arready,
+        axi_rdata       => s00_axi_rdata,
+        axi_rresp       => s00_axi_rresp,
+        axi_rvalid      => s00_axi_rvalid,
+        axi_rready      => s00_axi_rready
     );
-    
 
     conv_engine : entity work.convolution_engine
     port map (
