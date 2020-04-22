@@ -36,7 +36,7 @@ begin
         if rising_edge(clk) then
             -- Clear the accumulator
             if i_clearAccum = '1' then
-                r_accumulator <= (others => '0');
+                r_accumulator <= r_value * r_weight;
             else
                 r_accumulator <= r_accumulator + (r_value * r_weight);
             end if;
