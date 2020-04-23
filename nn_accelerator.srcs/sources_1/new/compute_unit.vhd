@@ -16,6 +16,9 @@ end compute_unit;
 
 architecture arch of compute_unit is
 
+    attribute use_dsp : string;
+    attribute use_dsp of arch : architecture is "yes";
+
     signal r_value          : signed(DATA_WIDTH-1 downto 0);
     signal r_weight         : signed(DATA_WIDTH-1 downto 0);
     signal r_accumulator    : signed(2*DATA_WIDTH-1 downto 0);

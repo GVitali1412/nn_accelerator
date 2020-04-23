@@ -154,6 +154,8 @@ begin
                                         axi_wdata(byte*8+7 downto byte*8);
                                 end if;
                             end loop;
+                        when others =>
+                            null;
                     end case;
                 end if;
             end if;
