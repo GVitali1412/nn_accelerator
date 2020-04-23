@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity counters is
     generic (
         KERNEL_SIZE     : positive := 9;
-        FILTER_DEPTH    : positive := 1;
+        FILTER_DEPTH    : positive := 8;
         X_LENGTH        : positive := 13;
         Y_LENGTH        : positive := 13;
         MAP_SIZE        : positive := X_LENGTH * Y_LENGTH
@@ -32,158 +32,236 @@ architecture arch of counters is
     signal s_xPos           : natural range 0 to X_LENGTH - 1;
     signal s_yPos           : natural range 0 to Y_LENGTH - 1;
 
+    -- Shift register to assert the o_save with a delay of 3 clock cycles
+    signal r_shiftSave      : std_logic_vector(2 downto 0);
+
 begin
 
     o_kernelIdx <= s_kernelIdx;
-    o_filterIdx <= 0;  -- TODO: for now only one kernel per filter
+    o_filterIdx <= s_filterIdx;
     o_mapIdx <= s_mapIdx;
+    o_save <= r_shiftSave(2);
 
     process (clk)
+        variable v_saveFlag : std_logic := '0';
     begin
         if rising_edge(clk) then
+            v_saveFlag := '0';
+
             if i_start = '1' then
                 s_mapPos <= NW;
                 s_kernelIdx <= 4;
+                s_filterIdx <= 0;
                 s_xPos <= 0;
                 s_yPos <= 0;
                 s_mapIdx <= 0;
+                r_shiftSave <= "001";
 
             else
                 case s_mapPos is
 
-                    when NW =>  -- Top left corner
-                        if s_kernelIdx = 8 then
+                when NW =>  -- Top left corner
+                    if s_kernelIdx = 8 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 3;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             s_mapPos <= N;
-                        elsif s_kernelIdx = 5 then
-                            s_kernelIdx <= 7;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 4;
                         end if;
+                    elsif s_kernelIdx = 5 then
+                        s_kernelIdx <= 7;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when N =>  -- Top border
-                        if s_kernelIdx = 8 then
+                when N =>  -- Top border
+                    if s_kernelIdx = 8 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 3;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             if s_xPos = X_LENGTH-2 then
+                                -- Top right corner reached
                                 s_mapPos <= NE;
                             end if;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 3;
                         end if;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when NE =>  -- Top right corner
-                        if s_kernelIdx = 7 then  -- Go to the next row
+                when NE =>  -- Top right corner
+                    if s_kernelIdx = 7 then  
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Go to the next row
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 1;
                             s_xPos <= 0;
                             s_yPos <= s_yPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             s_mapPos <= W;
-                        elsif s_kernelIdx = 4 then
-                            s_kernelIdx <= 6;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 3;
                         end if;
+                    elsif s_kernelIdx = 4 then
+                        s_kernelIdx <= 6;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when W =>  -- Left border
-                        if s_kernelIdx = 8 then
+                when W =>  -- Left border
+                    if s_kernelIdx = 8 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 0;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             s_mapPos <= C;
-                        elsif s_kernelIdx = 2 then
-                            s_kernelIdx <= 4;
-                        elsif s_kernelIdx = 5 then
-                            s_kernelIdx <= 7;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 1;
                         end if;
+                    elsif s_kernelIdx = 2 then
+                        s_kernelIdx <= 4;
+                    elsif s_kernelIdx = 5 then
+                        s_kernelIdx <= 7;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when C =>  -- Not on a border/corner
-                        if s_kernelIdx = 8 then
+                when C =>  -- Not on a border/corner
+                    if s_kernelIdx = 8 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 0;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             if s_xPos = X_LENGTH-2 then
+                                -- Rigth border reached
                                 s_mapPos <= E;
                             end if;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 0;
                         end if;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when E =>  -- Right border
-                        if s_kernelIdx = 7 then  -- Go to the next row
+                when E =>  -- Right border
+                    if s_kernelIdx = 7 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Go to the next row
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 1;
                             s_xPos <= 0;
                             s_yPos <= s_yPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             if s_yPos = Y_LENGTH-2 then
-                                s_mapPos <= SW;  -- Next row will be the last
+                                -- Next row will be the last one
+                                s_mapPos <= SW;
                             else
                                 s_mapPos <= W;
                             end if;
-                        elsif s_kernelIdx = 1 then
-                            s_kernelIdx <= 3;
-                        elsif s_kernelIdx = 4 then
-                            s_kernelIdx <= 6;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 0;
                         end if;
+                    elsif s_kernelIdx = 1 then
+                        s_kernelIdx <= 3;
+                    elsif s_kernelIdx = 4 then
+                        s_kernelIdx <= 6;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when SW =>  -- Bottom left corner
-                        if s_kernelIdx = 5 then
+                when SW =>  -- Bottom left corner
+                    if s_kernelIdx = 5 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 0;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             s_mapPos <= S;
-                        elsif s_kernelIdx = 2 then
-                            s_kernelIdx <= 4;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 1;
                         end if;
+                    elsif s_kernelIdx = 2 then
+                        s_kernelIdx <= 4;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when S =>  -- Bottom border
-                        if s_kernelIdx = 5 then
+                when S =>  -- Bottom border
+                    if s_kernelIdx = 5 then
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Move to the right
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
                             s_kernelIdx <= 0;
                             s_xPos <= s_xPos + 1;
                             s_mapIdx <= s_mapIdx + 1;
                             if s_xPos = X_LENGTH-2 then
+                                -- Bottom right corner reached
                                 s_mapPos <= SE;
                             end if;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 0;
                         end if;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
-                    when SE =>  -- Bottom right corner
-                        if s_kernelIdx = 4 then  -- Go back to the start
+                when SE =>  -- Bottom right corner
+                    if s_kernelIdx = 4 then  
+                        if s_filterIdx = FILTER_DEPTH-1 then
+                            -- Go back to the top left corner 
+                            v_saveFlag := '1';
+                            s_filterIdx <= 0;
+                            s_kernelIdx <= 4;
                             s_xPos <= 0;
                             s_yPos <= 0;
                             s_mapIdx <= 0;
                             s_mapPos <= NW;
-                        elsif s_kernelIdx = 1 then
-                            s_kernelIdx <= 3;
                         else
-                            s_kernelIdx <= s_kernelIdx + 1;
+                            s_filterIdx <= s_filterIdx + 1;
+                            s_kernelIdx <= 0;
                         end if;
+                    elsif s_kernelIdx = 1 then
+                        s_kernelIdx <= 3;
+                    else
+                        s_kernelIdx <= s_kernelIdx + 1;
+                    end if;
 
                 end case;
+
+                -- Update the 'save' shift register
+                r_shiftSave <= r_shiftSave(1 downto 0) & v_saveFlag;
+
             end if;
         end if;
     end process;
-
-    o_save <= 
-        '1' when (s_mapPos = NW and s_kernelIdx = 7)
-              or (s_mapPos = N and s_kernelIdx = 5)
-              or (s_mapPos = NE and s_kernelIdx = 6)
-              or (s_mapPos = W and s_kernelIdx = 4)
-              or (s_mapPos = C and s_kernelIdx = 2)
-              or (s_mapPos = E and s_kernelIdx = 3)
-              or (s_mapPos = SW and s_kernelIdx = 4)
-              or (s_mapPos = S and s_kernelIdx = 2)
-              or (s_mapPos = SE and s_kernelIdx = 3)
-        else '0';
 
 end arch;

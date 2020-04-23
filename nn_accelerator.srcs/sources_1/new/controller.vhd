@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity controller is
     generic (
         KERNEL_SIZE     : positive := 9;
-        FILTER_DEPTH    : positive := 1;
+        FILTER_DEPTH    : positive := 8;
         MAP_SIZE        : positive := 13 * 13
     );
     port (

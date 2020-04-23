@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity addr_generator is
     generic (
         KERNEL_SIZE     : positive := 9;
-        FILTER_DEPTH    : positive := 1;
+        FILTER_DEPTH    : positive := 8;
         MAP_SIZE        : positive := 13 * 13
     );
     port (
@@ -38,12 +38,16 @@ begin
                      14 when 8,
                      0  when others;
     
-    o_inBramAddr  <= std_logic_vector(to_unsigned(i_mapIdx + s_offset, 18));
+    o_inBramAddr  <= std_logic_vector(to_unsigned(i_mapIdx
+                                                  + (i_filterIdx * MAP_SIZE)
+                                                  + s_offset, 18));
 
     o_outBramAddr <= std_logic_vector(to_unsigned(MAP_SIZE-1, 9))
                         when i_mapIdx = 0 else
                      std_logic_vector(to_unsigned(i_mapIdx-1, 9));
 
-    o_wgsBramAddr <= std_logic_vector(to_unsigned(i_kernelIdx, 9));
+    o_wgsBramAddr <= std_logic_vector(to_unsigned(i_kernelIdx 
+                                                  + (i_filterIdx * KERNEL_SIZE)
+                                                  , 9));
 
 end arch;
