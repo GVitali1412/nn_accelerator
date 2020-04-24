@@ -8,6 +8,7 @@ entity compute_unit is
     port (
         clk             : in std_logic;
         i_clearAccum    : in std_logic;
+        i_enActivation  : in std_logic;
         i_value         : in signed(DATA_WIDTH-1 downto 0);
         i_weight        : in signed(DATA_WIDTH-1 downto 0);
         o_result        : out signed(DATA_WIDTH-1 downto 0)
@@ -22,6 +23,8 @@ architecture arch of compute_unit is
     signal r_value          : signed(DATA_WIDTH-1 downto 0);
     signal r_weight         : signed(DATA_WIDTH-1 downto 0);
     signal r_accumulator    : signed(2*DATA_WIDTH-1 downto 0);
+    signal s_activation     : signed(DATA_WIDTH-1 downto 0);
+    signal s_partialSum     : signed(DATA_WIDTH-1 downto 0);
 
 begin
 
@@ -46,7 +49,21 @@ begin
         end if;
     end process;
 
-    -- TODO: check for overflow/underflow -> saturate the output
-    o_result <= r_accumulator(DATA_WIDTH-1 downto 0);
+    -- Rectifier activation function
+    s_activation <= "00000000" when r_accumulator < 0
+                        else
+                    "01111111" when r_accumulator > 1023  -- Saturate overflow
+                        else
+                    r_accumulator(10 downto 3);  -- Fixed precision, 3 fractional bits
+    
+    s_partialSum <= "10000000" when r_accumulator < -1024  -- Saturate underflow
+                        else
+                    "01111111" when r_accumulator > 1023  -- Saturate overflow
+                        else                    
+                    r_accumulator(10 downto 3);  -- Fixed precision, 3 fractional bits
+
+    o_result <= s_activation when i_enActivation = '1' 
+                    else
+                s_partialSum;
 
 end arch;

@@ -56,12 +56,12 @@ begin
         port map (
             clk             => clk,
             i_clearAccum    => s_clearAccum,
+            i_enActivation  => '1',
             i_value         => signed(in_bram_rddata),
             i_weight        => signed(w_bram_rddata(DATA_WIDTH*(i+1)-1 
                                                     downto DATA_WIDTH*i)),
             std_logic_vector(o_result) => 
-                out_bram_wrdata(DATA_WIDTH*(i+1)-1 
-                                downto DATA_WIDTH*i)
+                out_bram_wrdata(DATA_WIDTH*(i+1)-1 downto DATA_WIDTH*i)
         );
     end generate;
 
