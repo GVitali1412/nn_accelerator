@@ -12,27 +12,31 @@ architecture tb of tb_counters is
     component counters is
         generic (
             KERNEL_SIZE     : positive := 9;
-            FILTER_DEPTH    : positive := 8;
-            X_LENGTH        : positive := 13;
-            Y_LENGTH        : positive := 13;
-            MAP_SIZE        : positive := X_LENGTH * Y_LENGTH
+            N_CHANNELS      : positive := 8;
+            N_ROWS          : positive := 13;
+            N_COLUMNS       : positive := 13;
+            MAP_SIZE        : positive := N_ROWS * N_COLUMNS
         );
         port (
             clk             : in std_logic;
             i_start         : in std_logic;
-            o_kernelIdx     : out natural range 0 to KERNEL_SIZE - 1;
-            o_filterIdx     : out natural range 0 to FILTER_DEPTH - 1;
+            o_weightIdx     : out natural range 0 to KERNEL_SIZE - 1;
+            o_channelIdx    : out natural range 0 to N_CHANNELS - 1;
             o_mapIdx        : out natural range 0 to MAP_SIZE - 1;
             o_save          : out std_logic
         );
     end component;
 
     constant clock_period   : time := 10 ns;
+    constant KERNEL_SIZE    : positive := 9;
+    constant N_CHANNELS     : positive := 8;
+    constant MAP_SIZE       : positive := 13 * 13;
+    
     signal clk              : std_logic := '0';
     signal start            : std_logic := '0';
-    signal s_kernelIdx      : natural range 0 to 8;
-    signal s_filterIdx      : natural range 0 to 0;
-    signal s_mapIdx         : natural range 0 to 168;
+    signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
+    signal s_channelIdx     : natural range 0 to N_CHANNELS - 1;
+    signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
     signal s_save           : std_logic;
 
 begin
@@ -41,8 +45,8 @@ begin
     port map (
         clk             => clk,
         i_start         => start,
-        o_kernelIdx     => s_kernelIdx,
-        o_filterIdx     => s_filterIdx,
+        o_weightIdx     => s_weightIdx,
+        o_channelIdx    => s_channelIdx,
         o_mapIdx        => s_mapIdx,
         o_save          => s_save
     );

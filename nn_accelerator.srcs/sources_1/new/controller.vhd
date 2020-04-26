@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity controller is
     generic (
         KERNEL_SIZE     : positive := 9;
-        FILTER_DEPTH    : positive := 8;
+        N_CHANNELS    : positive := 8;
         MAP_SIZE        : positive := 13 * 13
     );
     port (
@@ -34,8 +34,8 @@ architecture arch of controller is
     type state_type is (IDLE, PIPE_FILL, COMPUTE, LAST);
     signal fsm_state        : state_type := IDLE;
 
-    signal s_kernelIdx      : natural range 0 to KERNEL_SIZE - 1;
-    signal s_filterIdx      : natural range 0 to FILTER_DEPTH - 1;
+    signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
+    signal s_channelIdx      : natural range 0 to N_CHANNELS - 1;
     signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
     signal s_save           : std_logic;
 
@@ -81,8 +81,8 @@ begin
     port map (
         clk             => clk,
         i_start         => i_start,
-        o_kernelIdx     => s_kernelIdx,
-        o_filterIdx     => s_filterIdx,
+        o_weightIdx     => s_weightIdx,
+        o_channelIdx    => s_channelIdx,
         o_mapIdx        => s_mapIdx,
         o_save          => s_save
     );
@@ -90,8 +90,8 @@ begin
     addresses_generator : entity work.addr_generator
     port map (
         clk             => clk,
-        i_kernelIdx     => s_kernelIdx,
-        i_filterIdx     => s_filterIdx,
+        i_weightIdx     => s_weightIdx,
+        i_channelIdx    => s_channelIdx,
         i_mapIdx        => s_mapIdx,
         o_inBramAddr    => o_inBramAddr,
         o_outBramAddr   => o_outBramAddr,
