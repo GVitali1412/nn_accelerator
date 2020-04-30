@@ -14,10 +14,10 @@ entity addr_generator is
         i_weightIdx     : in natural range 0 to KERNEL_SIZE - 1;
         i_channelIdx    : in natural range 0 to N_CHANNELS - 1;
         i_mapIdx        : in natural range 0 to MAP_SIZE - 1;
-        o_inBramAddr    : out std_logic_vector(17 downto 0);
-        o_outBramAddr   : out std_logic_vector(8 downto 0);
-        o_wgsBramAddr   : out std_logic_vector(8 downto 0);
-        o_psumBramAddr  : out std_logic_vector(8 downto 0)
+        o_inBufAddr     : out std_logic_vector(17 downto 0);
+        o_wgsBufAddr    : out std_logic_vector(8 downto 0);
+        o_psumBufAddr   : out std_logic_vector(8 downto 0);
+        o_outBufAddr    : out std_logic_vector(8 downto 0)
     );
 end addr_generator;
 
@@ -39,18 +39,18 @@ begin
                      14 when 8,
                      0  when others;
     
-    o_inBramAddr  <= std_logic_vector(to_unsigned(i_mapIdx
+    o_inBufAddr  <= std_logic_vector(to_unsigned(i_mapIdx
                                                   + (i_channelIdx * MAP_SIZE)
                                                   + s_offset, 18));
 
-    o_outBramAddr <= std_logic_vector(to_unsigned(MAP_SIZE-1, 9))
-                        when i_mapIdx = 0 else
-                     std_logic_vector(to_unsigned(i_mapIdx-1, 9));
-
-    o_wgsBramAddr <= std_logic_vector(to_unsigned(i_weightIdx 
+    o_wgsBufAddr <= std_logic_vector(to_unsigned(i_weightIdx 
                                                   + (i_channelIdx * KERNEL_SIZE)
                                                   , 9));
 
-    o_psumBramAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
+    o_psumBufAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
+
+    o_outBufAddr <= std_logic_vector(to_unsigned(MAP_SIZE-1, 9))
+                        when i_mapIdx = 0 else
+                    std_logic_vector(to_unsigned(i_mapIdx-1, 9));
 
 end arch;

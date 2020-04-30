@@ -127,6 +127,9 @@ architecture arch of nn_accelerator is
     signal s_ctrlReg2       : std_logic_vector(31 downto 0);
     signal s_ctrlReg3       : std_logic_vector(31 downto 0);
 
+    signal s_clearAccum     : std_logic;
+    signal s_loadPartSum    : std_logic;
+
     signal in_bram_en_a     : std_logic;
     signal in_bram_we_a     : std_logic_vector(3 downto 0);
     signal in_bram_addr_a   : std_logic_vector(17 downto 0);
@@ -388,23 +391,32 @@ begin
         axi_rready      => s00_axi_rready
     );
 
-    conv_engine : entity work.convolution_engine
+    convolution_controller : entity work.controller
     port map (
         clk             => clk,
         i_start         => start,
-        in_bram_en      => in_bram_en_b,
-        in_bram_addr    => in_bram_addr_b,
-        in_bram_rddata  => in_bram_rddata_b,
-        out_bram_en     => out_bram_en_a,
-        out_bram_we     => out_bram_we_a(0),
-        out_bram_addr   => out_bram_addr_a,
-        out_bram_wrdata => out_bram_wrdata_a,
-        w_bram_en       => w_bram_en_b,
-        w_bram_addr     => w_bram_addr_b,
-        w_bram_rddata   => w_bram_rddata_b,
-        ps_bram_en      => ps_bram_en_b,
-        ps_bram_addr    => ps_bram_addr_b,
-        ps_bram_rddata  => ps_bram_rddata_b
+        o_clearAccum    => s_clearAccum,
+        o_loadPartSum   => s_loadPartSum,
+        o_inBufEn       => in_bram_en_b,
+        o_inBufAddr     => in_bram_addr_b,
+        o_wgsBufEn      => w_bram_en_b,
+        o_wgsBufAddr    => w_bram_addr_b,
+        o_psumBufEn     => ps_bram_en_b,
+        o_psumBufAddr   => ps_bram_addr_b,
+        o_outBufEn      => out_bram_en_a,
+        o_outBufWe      => out_bram_we_a(0),
+        o_outBufAddr    => out_bram_addr_a
+    );
+
+    conv_engine : entity work.convolution_engine
+    port map (
+        clk             => clk,
+        i_clearAccum    => s_clearAccum,
+        i_loadPartSum   => s_loadPartSum,
+        i_inBufData     => in_bram_rddata_b,
+        i_wgsBufData    => w_bram_rddata_b,
+        i_psumBufData   => ps_bram_rddata_b,
+        o_outBufData    => out_bram_wrdata_a
     );
 
     in_block_ram : in_bram

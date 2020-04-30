@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity controller is
     generic (
         KERNEL_SIZE     : positive := 9;
-        N_CHANNELS    : positive := 8;
+        N_CHANNELS      : positive := 8;
         MAP_SIZE        : positive := 13 * 13
     );
     port (
@@ -15,22 +15,22 @@ entity controller is
         o_clearAccum    : out std_logic;
         o_loadPartSum   : out std_logic;
 
-        -- in bram
-        o_inBramEn      : out std_logic;
-        o_inBramAddr    : out std_logic_vector(17 downto 0);
+        -- in buffer
+        o_inBufEn       : out std_logic;
+        o_inBufAddr     : out std_logic_vector(17 downto 0);
 
-        -- out bram
-        o_outBramEn     : out std_logic;
-        o_outBramWe     : out std_logic;
-        o_outBramAddr   : out std_logic_vector(8 downto 0);
+        -- weights buffer
+        o_wgsBufEn      : out std_logic;
+        o_wgsBufAddr    : out std_logic_vector(8 downto 0);
 
-        -- weights bram
-        o_wgsBramEn     : out std_logic;
-        o_wgsBramAddr   : out std_logic_vector(8 downto 0);
+        -- partial sums buffer
+        o_psumBufEn     : out std_logic;
+        o_psumBufAddr   : out std_logic_vector(8 downto 0);
 
-        -- partial sums bram
-        o_psumBramEn    : out std_logic;
-        o_psumBramAddr  : out std_logic_vector(8 downto 0)
+        -- out buffer
+        o_outBufEn      : out std_logic;
+        o_outBufWe      : out std_logic;
+        o_outBufAddr    : out std_logic_vector(8 downto 0)
     );
 end controller;
 
@@ -68,21 +68,21 @@ begin
     end process;
 
 
-    o_inBramEn <= '1';
+    o_inBufEn <= '1';
 
-    o_outBramEn <= '1' when fsm_state = COMPUTE or fsm_state = LAST
+    o_outBufEn <= '1' when fsm_state = COMPUTE or fsm_state = LAST
+                  else '0';
+
+    o_outBufWe <= '1' when s_save = '1'
                    else '0';
 
-    o_outBramWe <= '1' when s_save = '1'
-                   else '0';
-
-    o_wgsBramEn <= '1';
+    o_wgsBufEn <= '1';
 
     o_clearAccum <= '1' when s_save = '1'
                     else '0';
     
-    -- TODO enable partial sums bram
-    o_psumBramEn <= '0';
+    -- TODO enable partial sums buffer
+    o_psumBufEn <= '0';
     o_loadPartSum <= '0';
 
     counters : entity work.counters
@@ -101,10 +101,10 @@ begin
         i_weightIdx     => s_weightIdx,
         i_channelIdx    => s_channelIdx,
         i_mapIdx        => s_mapIdx,
-        o_inBramAddr    => o_inBramAddr,
-        o_outBramAddr   => o_outBramAddr,
-        o_wgsBramAddr   => o_wgsBramAddr,
-        o_psumBramAddr  => o_psumBramAddr
+        o_inBufAddr     => o_inBufAddr,
+        o_wgsBufAddr    => o_wgsBufAddr,
+        o_psumBufAddr   => o_psumBufAddr,
+        o_outBufAddr    => o_outBufAddr
     );
 
 end arch;
