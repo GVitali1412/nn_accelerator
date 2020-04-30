@@ -17,30 +17,39 @@ entity counters is
         o_weightIdx     : out natural range 0 to KERNEL_SIZE - 1;
         o_channelIdx    : out natural range 0 to N_CHANNELS - 1;
         o_mapIdx        : out natural range 0 to MAP_SIZE - 1;
-        o_save          : out std_logic
+        o_mapIdxOld     : out natural range 0 to MAP_SIZE - 1;
+        o_save          : out std_logic;
+        o_done          : out std_logic
     );
 end counters;
 
 architecture arch of counters is
 
     type mapPos_type is (N, NE, E, SE, S, SW, W, NW, C);
-    signal s_mapPos         : mapPos_type;
+    signal r_mapPos         : mapPos_type;
 
-    signal s_weightIdx      : natural range 0 to KERNEL_SIZE + 2;
-    signal s_channelIdx     : natural range 0 to N_CHANNELS - 1;
-    signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
-    signal s_row            : natural range 0 to N_ROWS - 1;
-    signal s_column         : natural range 0 to N_COLUMNS - 1;
+    signal r_weightIdx      : natural range 0 to KERNEL_SIZE + 2;
+    signal r_channelIdx     : natural range 0 to N_CHANNELS - 1;
+    signal r_mapIdx         : natural range 0 to MAP_SIZE - 1;
+    signal r_mapIdxOld      : natural range 0 to MAP_SIZE - 1;
+    signal r_row            : natural range 0 to N_ROWS - 1;
+    signal r_column         : natural range 0 to N_COLUMNS - 1;
+
+    signal r_done           : std_logic;
 
     -- Shift register to assert the o_save with a delay of 3 clock cycles
     signal r_shiftSave      : std_logic_vector(2 downto 0);
 
 begin
 
-    o_weightIdx <= s_weightIdx;
-    o_channelIdx <= s_channelIdx;
-    o_mapIdx <= s_mapIdx;
+    o_weightIdx <= r_weightIdx;
+    o_channelIdx <= r_channelIdx;
+    o_mapIdx <= r_mapIdx;
+    o_mapIdxOld <= r_mapIdxOld;
     o_save <= r_shiftSave(2);
+
+    -- Assert the done signal with the last save 
+    o_done <= r_done and r_shiftSave(2);
 
     process (clk)
         variable v_saveFlag : std_logic := '0';
@@ -49,210 +58,216 @@ begin
             v_saveFlag := '0';
 
             if i_start = '1' then
-                s_mapPos <= NW;
-                s_weightIdx <= 4;
-                s_channelIdx <= 0;
-                s_column <= 0;
-                s_row <= 0;
-                s_mapIdx <= 0;
+                r_mapPos <= NW;
+                r_weightIdx <= 4;
+                r_channelIdx <= 0;
+                r_column <= 0;
+                r_row <= 0;
+                r_mapIdx <= 0;
+                r_mapIdxOld <= 0;
+                r_done <= '0';
                 r_shiftSave <= "001";
 
             else
-                case s_mapPos is
+                case r_mapPos is
 
                 when NW =>  -- Top left corner
-                    if s_weightIdx = 8 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 8 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 3;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            s_mapPos <= N;
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 3;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            r_mapPos <= N;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 4;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 4;
                         end if;
-                    elsif s_weightIdx = 5 then
-                        s_weightIdx <= 7;
+                    elsif r_weightIdx = 5 then
+                        r_weightIdx <= 7;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when N =>  -- Top border
-                    if s_weightIdx = 8 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 8 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 3;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            if s_column = N_COLUMNS-2 then
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 3;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            if r_column = N_COLUMNS-2 then
                                 -- Top right corner reached
-                                s_mapPos <= NE;
+                                r_mapPos <= NE;
                             end if;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 3;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 3;
                         end if;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when NE =>  -- Top right corner
-                    if s_weightIdx = 7 then  
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 7 then  
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Go to the next row
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 1;
-                            s_column <= 0;
-                            s_row <= s_row + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            s_mapPos <= W;
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 1;
+                            r_column <= 0;
+                            r_row <= r_row + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdx <= r_mapIdxOld;
+                            r_mapPos <= W;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 3;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 3;
                         end if;
-                    elsif s_weightIdx = 4 then
-                        s_weightIdx <= 6;
+                    elsif r_weightIdx = 4 then
+                        r_weightIdx <= 6;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when W =>  -- Left border
-                    if s_weightIdx = 8 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 8 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 0;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            s_mapPos <= C;
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 0;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            r_mapPos <= C;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 1;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 1;
                         end if;
-                    elsif s_weightIdx = 2 then
-                        s_weightIdx <= 4;
-                    elsif s_weightIdx = 5 then
-                        s_weightIdx <= 7;
+                    elsif r_weightIdx = 2 then
+                        r_weightIdx <= 4;
+                    elsif r_weightIdx = 5 then
+                        r_weightIdx <= 7;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when C =>  -- Not on a border/corner
-                    if s_weightIdx = 8 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 8 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 0;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            if s_column = N_COLUMNS-2 then
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 0;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            if r_column = N_COLUMNS-2 then
                                 -- Rigth border reached
-                                s_mapPos <= E;
+                                r_mapPos <= E;
                             end if;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 0;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 0;
                         end if;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when E =>  -- Right border
-                    if s_weightIdx = 7 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 7 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Go to the next row
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 1;
-                            s_column <= 0;
-                            s_row <= s_row + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            if s_row = N_ROWS-2 then
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 1;
+                            r_column <= 0;
+                            r_row <= r_row + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            if r_row = N_ROWS-2 then
                                 -- Next row will be the last one
-                                s_mapPos <= SW;
+                                r_mapPos <= SW;
                             else
-                                s_mapPos <= W;
+                                r_mapPos <= W;
                             end if;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 0;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 0;
                         end if;
-                    elsif s_weightIdx = 1 then
-                        s_weightIdx <= 3;
-                    elsif s_weightIdx = 4 then
-                        s_weightIdx <= 6;
+                    elsif r_weightIdx = 1 then
+                        r_weightIdx <= 3;
+                    elsif r_weightIdx = 4 then
+                        r_weightIdx <= 6;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when SW =>  -- Bottom left corner
-                    if s_weightIdx = 5 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 5 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 0;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            s_mapPos <= S;
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 0;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            r_mapPos <= S;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 1;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 1;
                         end if;
-                    elsif s_weightIdx = 2 then
-                        s_weightIdx <= 4;
+                    elsif r_weightIdx = 2 then
+                        r_weightIdx <= 4;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when S =>  -- Bottom border
-                    if s_weightIdx = 5 then
-                        if s_channelIdx = N_CHANNELS-1 then
+                    if r_weightIdx = 5 then
+                        if r_channelIdx = N_CHANNELS-1 then
                             -- Move to the right
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 0;
-                            s_column <= s_column + 1;
-                            s_mapIdx <= s_mapIdx + 1;
-                            if s_column = N_COLUMNS-2 then
+                            r_channelIdx <= 0;
+                            r_weightIdx <= 0;
+                            r_column <= r_column + 1;
+                            r_mapIdx <= r_mapIdx + 1;
+                            r_mapIdxOld <= r_mapIdx;
+                            if r_column = N_COLUMNS-2 then
                                 -- Bottom right corner reached
-                                s_mapPos <= SE;
+                                r_mapPos <= SE;
                             end if;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 0;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 0;
                         end if;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 when SE =>  -- Bottom right corner
-                    if s_weightIdx = 4 then  
-                        if s_channelIdx = N_CHANNELS-1 then
-                            -- Go back to the top left corner 
+                    if r_weightIdx = 4 then  
+                        if r_channelIdx = N_CHANNELS-1 then
+                            -- End reached
                             v_saveFlag := '1';
-                            s_channelIdx <= 0;
-                            s_weightIdx <= 4;
-                            s_column <= 0;
-                            s_row <= 0;
-                            s_mapIdx <= 0;
-                            s_mapPos <= NW;
+                            r_done <= '1';
+                            r_mapIdxOld <= r_mapIdx;
                         else
-                            s_channelIdx <= s_channelIdx + 1;
-                            s_weightIdx <= 0;
+                            r_channelIdx <= r_channelIdx + 1;
+                            r_weightIdx <= 0;
                         end if;
-                    elsif s_weightIdx = 1 then
-                        s_weightIdx <= 3;
+                    elsif r_weightIdx = 1 then
+                        r_weightIdx <= 3;
                     else
-                        s_weightIdx <= s_weightIdx + 1;
+                        r_weightIdx <= r_weightIdx + 1;
                     end if;
 
                 end case;

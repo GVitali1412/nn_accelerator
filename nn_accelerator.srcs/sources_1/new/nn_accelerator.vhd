@@ -118,10 +118,6 @@ end nn_accelerator;
 
 architecture arch of nn_accelerator is
     
-    -- temporary start signal
-    signal start : std_logic;
-    signal started : std_logic := '0';
-    
     signal s_ctrlReg0       : std_logic_vector(31 downto 0);
     signal s_ctrlReg1       : std_logic_vector(31 downto 0);
     signal s_ctrlReg2       : std_logic_vector(31 downto 0);
@@ -352,18 +348,6 @@ architecture arch of nn_accelerator is
 
 begin
 
-    process (clk)
-    begin
-        if rising_edge(clk) then
-            if started = '0' and s_ctrlReg0(0) = '1' then
-                started <= '1';
-                start <= '1';
-            else
-                start <= '0';
-            end if;
-        end if;
-    end process;
-
     control_registers : entity work.axi4lite_controls
     port map (
         clk             => clk,
@@ -394,7 +378,10 @@ begin
     convolution_controller : entity work.controller
     port map (
         clk             => clk,
-        i_start         => start,
+        i_ctrlReg0      => s_ctrlReg0,
+        i_ctrlReg1      => s_ctrlReg1,
+        i_ctrlReg2      => s_ctrlReg2,
+        i_ctrlReg3      => s_ctrlReg3,
         o_clearAccum    => s_clearAccum,
         o_loadPartSum   => s_loadPartSum,
         o_inBufEn       => in_bram_en_b,
