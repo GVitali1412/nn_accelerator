@@ -39,12 +39,28 @@ architecture arch of controller is
     type state_type is (IDLE, PIPE_FILL, COMPUTE, LAST);
     signal fsm_state        : state_type := IDLE;
 
+    signal s_enInstrRom     : std_logic;
+    signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
+    signal s_instr          : std_logic_vector(63 downto 0);
+
     signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
-    signal s_channelIdx      : natural range 0 to N_CHANNELS - 1;
+    signal s_channelIdx     : natural range 0 to N_CHANNELS - 1;
     signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
     signal s_save           : std_logic;
 
+    component instruction_rom
+        port (
+            clka            : in std_logic;
+            ena             : in std_logic;
+            addra           : in std_logic_vector(8 downto 0);
+            douta           : out std_logic_vector(63 downto 0)
+        );
+    end component;
+
 begin
+
+    -- TODO
+    s_enInstrRom <= '0';
 
     process (clk)
     begin
@@ -106,5 +122,14 @@ begin
         o_psumBufAddr   => o_psumBufAddr,
         o_outBufAddr    => o_outBufAddr
     );
+
+    instr_rom : instruction_rom
+    port map (
+        clka            => clk,
+        ena             => s_enInstrRom,
+        addra           => r_instrPtr,
+        douta           => s_instr
+    );
+
 
 end arch;
