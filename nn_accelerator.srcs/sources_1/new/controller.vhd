@@ -161,6 +161,7 @@ begin
         i_weightIdx     => s_weightIdx,
         i_channelIdx    => s_channelIdx,
         i_mapIdx        => s_mapIdx,
+        i_mapIdxOld     => s_mapIdxOld,
         o_inBufAddr     => o_inBufAddr,
         o_wgsBufAddr    => o_wgsBufAddr,
         o_psumBufAddr   => o_psumBufAddr,

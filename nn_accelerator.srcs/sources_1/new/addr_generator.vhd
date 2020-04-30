@@ -14,6 +14,7 @@ entity addr_generator is
         i_weightIdx     : in natural range 0 to KERNEL_SIZE - 1;
         i_channelIdx    : in natural range 0 to N_CHANNELS - 1;
         i_mapIdx        : in natural range 0 to MAP_SIZE - 1;
+        i_mapIdxOld     : in natural range 0 to MAP_SIZE - 1;
         o_inBufAddr     : out std_logic_vector(17 downto 0);
         o_wgsBufAddr    : out std_logic_vector(8 downto 0);
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
@@ -49,8 +50,6 @@ begin
 
     o_psumBufAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
 
-    o_outBufAddr <= std_logic_vector(to_unsigned(MAP_SIZE-1, 9))
-                        when i_mapIdx = 0 else
-                    std_logic_vector(to_unsigned(i_mapIdx-1, 9));
+    o_outBufAddr <= std_logic_vector(to_unsigned(i_mapIdxOld, 9));
 
 end arch;
