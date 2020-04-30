@@ -91,7 +91,28 @@ entity nn_accelerator is
         s03_axi_rdata   : out std_logic_vector(31 downto 0);
         s03_axi_rresp   : out std_logic_vector(1 downto 0);
         s03_axi_rvalid  : out std_logic;
-        s03_axi_rready  : in std_logic
+        s03_axi_rready  : in std_logic;
+
+        -- partial sums block ram interface
+        s04_axi_awaddr  : in std_logic_vector(15 downto 0);
+        s04_axi_awprot  : in std_logic_vector(2 downto 0);
+        s04_axi_awvalid : in std_logic;
+        s04_axi_awready : out std_logic;
+        s04_axi_wdata   : in std_logic_vector(31 downto 0);
+        s04_axi_wstrb   : in std_logic_vector(3 downto 0);
+        s04_axi_wvalid  : in std_logic;
+        s04_axi_wready  : out std_logic;
+        s04_axi_bresp   : out std_logic_vector(1 downto 0);
+        s04_axi_bvalid  : out std_logic;
+        s04_axi_bready  : in std_logic;
+        s04_axi_araddr  : in std_logic_vector(15 downto 0);
+        s04_axi_arprot  : in std_logic_vector(2 downto 0);
+        s04_axi_arvalid : in std_logic;
+        s04_axi_arready : out std_logic;
+        s04_axi_rdata   : out std_logic_vector(31 downto 0);
+        s04_axi_rresp   : out std_logic_vector(1 downto 0);
+        s04_axi_rvalid  : out std_logic;
+        s04_axi_rready  : in std_logic
     );
 end nn_accelerator;
 
@@ -130,6 +151,14 @@ architecture arch of nn_accelerator is
     signal w_bram_addr_b    : std_logic_vector(8 downto 0);
     signal w_bram_rddata_b  : std_logic_vector(1023 downto 0);
 
+    signal ps_bram_en_a     : std_logic;
+    signal ps_bram_we_a     : std_logic_vector(3 downto 0);
+    signal ps_bram_addr_a   : std_logic_vector(15 downto 0);
+    signal ps_bram_wrdata_a : std_logic_vector(31 downto 0);
+    signal ps_bram_en_b     : std_logic;
+    signal ps_bram_addr_b   : std_logic_vector(8 downto 0);
+    signal ps_bram_rddata_b : std_logic_vector(1023 downto 0);
+
     component in_bram
         port (
             clka            : in std_logic;
@@ -159,6 +188,20 @@ architecture arch of nn_accelerator is
     end component;
 
     component weights_bram
+        port (
+            clka            : in std_logic;
+            ena             : in std_logic;
+            wea             : in std_logic_vector(0 downto 0);
+            addra           : in std_logic_vector(13 downto 0);
+            dina            : in std_logic_vector(31 downto 0);
+            clkb            : in std_logic;
+            enb             : in std_logic;
+            addrb           : in std_logic_vector(8 downto 0);
+            doutb           : out std_logic_vector(1023 downto 0)
+        );
+    end component;
+
+    component partialSums_bram
         port (
             clka            : in std_logic;
             ena             : in std_logic;
@@ -271,6 +314,39 @@ architecture arch of nn_accelerator is
         );
     end component;
 
+    component partialSums_bram_controller
+        port (
+            s_axi_aclk      : in std_logic;
+            s_axi_aresetn   : in std_logic;
+            s_axi_awaddr    : in std_logic_vector(15 downto 0);
+            s_axi_awprot    : in std_logic_vector(2 downto 0);
+            s_axi_awvalid   : in std_logic;
+            s_axi_awready   : out std_logic;
+            s_axi_wdata     : in std_logic_vector(31 downto 0);
+            s_axi_wstrb     : in std_logic_vector(3 downto 0);
+            s_axi_wvalid    : in std_logic;
+            s_axi_wready    : out std_logic;
+            s_axi_bresp     : out std_logic_vector(1 downto 0);
+            s_axi_bvalid    : out std_logic;
+            s_axi_bready    : in std_logic;
+            s_axi_araddr    : in std_logic_vector(15 downto 0);
+            s_axi_arprot    : in std_logic_vector(2 downto 0);
+            s_axi_arvalid   : in std_logic;
+            s_axi_arready   : out std_logic;
+            s_axi_rdata     : out std_logic_vector(31 downto 0);
+            s_axi_rresp     : out std_logic_vector(1 downto 0);
+            s_axi_rvalid    : out std_logic;
+            s_axi_rready    : in std_logic;
+            bram_rst_a      : out std_logic;
+            bram_clk_a      : out std_logic;
+            bram_en_a       : out std_logic;
+            bram_we_a       : out std_logic_vector(3 downto 0);
+            bram_addr_a     : out std_logic_vector(15 downto 0);
+            bram_wrdata_a   : out std_logic_vector(31 downto 0);
+            bram_rddata_a   : in std_logic_vector(31 downto 0)
+        );
+    end component;
+
 begin
 
     process (clk)
@@ -325,7 +401,10 @@ begin
         out_bram_wrdata => out_bram_wrdata_a,
         w_bram_en       => w_bram_en_b,
         w_bram_addr     => w_bram_addr_b,
-        w_bram_rddata   => w_bram_rddata_b
+        w_bram_rddata   => w_bram_rddata_b,
+        ps_bram_en      => ps_bram_en_b,
+        ps_bram_addr    => ps_bram_addr_b,
+        ps_bram_rddata  => ps_bram_rddata_b
     );
 
     in_block_ram : in_bram
@@ -365,6 +444,19 @@ begin
         enb             => w_bram_en_b,
         addrb           => w_bram_addr_b,
         doutb           => w_bram_rddata_b
+    );
+
+    partialSums_block_ram : partialSums_bram
+    port map (
+        clka            => clk,
+        ena             => ps_bram_en_a,
+        wea(0)          => ps_bram_we_a(0),
+        addra           => ps_bram_addr_a(15 downto 2),
+        dina            => ps_bram_wrdata_a,
+        clkb            => clk,
+        enb             => ps_bram_en_b,
+        addrb           => ps_bram_addr_b,
+        doutb           => ps_bram_rddata_b
     );
   
     in_bram_axictrl : in_bram_controller
@@ -460,6 +552,38 @@ begin
         bram_we_a       => w_bram_we_a,
         bram_addr_a     => w_bram_addr_a,
         bram_wrdata_a   => w_bram_wrdata_a,
+        bram_rddata_a   => (others => '0')
+    );
+
+    partialSums_bram_axictrl : partialSums_bram_controller
+    port map (
+        s_axi_aclk      => clk,
+        s_axi_aresetn   => rstn,
+        s_axi_awaddr    => s04_axi_awaddr,
+        s_axi_awprot    => s04_axi_awprot,
+        s_axi_awvalid   => s04_axi_awvalid,
+        s_axi_awready   => s04_axi_awready,
+        s_axi_wdata     => s04_axi_wdata,
+        s_axi_wstrb     => s04_axi_wstrb,
+        s_axi_wvalid    => s04_axi_wvalid,
+        s_axi_wready    => s04_axi_wready,
+        s_axi_bresp     => s04_axi_bresp,
+        s_axi_bvalid    => s04_axi_bvalid,
+        s_axi_bready    => s04_axi_bready,
+        s_axi_araddr    => s04_axi_araddr,
+        s_axi_arprot    => s04_axi_arprot,
+        s_axi_arvalid   => s04_axi_arvalid,
+        s_axi_arready   => s04_axi_arready,
+        s_axi_rdata     => s04_axi_rdata,
+        s_axi_rresp     => s04_axi_rresp,
+        s_axi_rvalid    => s04_axi_rvalid,
+        s_axi_rready    => s04_axi_rready,
+        bram_rst_a      => open,
+        bram_clk_a      => open,
+        bram_en_a       => ps_bram_en_a,
+        bram_we_a       => ps_bram_we_a,
+        bram_addr_a     => ps_bram_addr_a,
+        bram_wrdata_a   => ps_bram_wrdata_a,
         bram_rddata_a   => (others => '0')
     );
 

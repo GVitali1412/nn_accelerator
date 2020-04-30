@@ -13,6 +13,7 @@ entity controller is
         clk             : in std_logic;
         i_start         : in std_logic;
         o_clearAccum    : out std_logic;
+        o_loadPartSum   : out std_logic;
 
         -- in bram
         o_inBramEn      : out std_logic;
@@ -25,7 +26,11 @@ entity controller is
 
         -- weights bram
         o_wgsBramEn     : out std_logic;
-        o_wgsBramAddr   : out std_logic_vector(8 downto 0)
+        o_wgsBramAddr   : out std_logic_vector(8 downto 0);
+
+        -- partial sums bram
+        o_psumBramEn    : out std_logic;
+        o_psumBramAddr  : out std_logic_vector(8 downto 0)
     );
 end controller;
 
@@ -75,7 +80,10 @@ begin
 
     o_clearAccum <= '1' when s_save = '1'
                     else '0';
-
+    
+    -- TODO enable partial sums bram
+    o_psumBramEn <= '0';
+    o_loadPartSum <= '0';
 
     counters : entity work.counters
     port map (
@@ -95,7 +103,8 @@ begin
         i_mapIdx        => s_mapIdx,
         o_inBramAddr    => o_inBramAddr,
         o_outBramAddr   => o_outBramAddr,
-        o_wgsBramAddr   => o_wgsBramAddr
+        o_wgsBramAddr   => o_wgsBramAddr,
+        o_psumBramAddr  => o_psumBramAddr
     );
 
 end arch;

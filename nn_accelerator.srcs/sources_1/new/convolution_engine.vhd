@@ -26,13 +26,19 @@ entity convolution_engine is
         -- weights bram
         w_bram_en       : out std_logic;
         w_bram_addr     : out std_logic_vector(8 downto 0);
-        w_bram_rddata   : in std_logic_vector(1023 downto 0)
+        w_bram_rddata   : in std_logic_vector(1023 downto 0);
+
+        -- partial sum bram
+        ps_bram_en      : out std_logic;
+        ps_bram_addr    : out std_logic_vector(8 downto 0);
+        ps_bram_rddata  : in std_logic_vector(1023 downto 0)
     );
 end convolution_engine;
 
 architecture arch of convolution_engine is
 
-    signal s_clearAccum    : std_logic; 
+    signal s_clearAccum     : std_logic;
+    signal s_loadPartSum    : std_logic;
 
 begin
 
@@ -41,13 +47,16 @@ begin
         clk             => clk,
         i_start         => i_start,
         o_clearAccum    => s_clearAccum,
+        o_loadPartSum   => s_loadPartSum,
         o_inBramEn      => in_bram_en,
         o_inBramAddr    => in_bram_addr,
         o_outBramEn     => out_bram_en,
         o_outBramWe     => out_bram_we,
         o_outBramAddr   => out_bram_addr,
         o_wgsBramEn     => w_bram_en,
-        o_wgsBramAddr   => w_bram_addr
+        o_wgsBramAddr   => w_bram_addr,
+        o_psumBramEn    => ps_bram_en,
+        o_psumBramAddr  => ps_bram_addr
     );
 
 
@@ -56,10 +65,13 @@ begin
         port map (
             clk             => clk,
             i_clearAccum    => s_clearAccum,
+            i_loadPartSum   => s_loadPartSum,
             i_enActivation  => '1',
             i_value         => signed(in_bram_rddata),
             i_weight        => signed(w_bram_rddata(DATA_WIDTH*(i+1)-1 
                                                     downto DATA_WIDTH*i)),
+            i_partialSumIn  => signed(ps_bram_rddata(DATA_WIDTH*(i+1)-1 
+                                                     downto DATA_WIDTH*i)),
             std_logic_vector(o_result) => 
                 out_bram_wrdata(DATA_WIDTH*(i+1)-1 downto DATA_WIDTH*i)
         );

@@ -16,7 +16,8 @@ entity addr_generator is
         i_mapIdx        : in natural range 0 to MAP_SIZE - 1;
         o_inBramAddr    : out std_logic_vector(17 downto 0);
         o_outBramAddr   : out std_logic_vector(8 downto 0);
-        o_wgsBramAddr   : out std_logic_vector(8 downto 0)
+        o_wgsBramAddr   : out std_logic_vector(8 downto 0);
+        o_psumBramAddr  : out std_logic_vector(8 downto 0)
     );
 end addr_generator;
 
@@ -49,5 +50,7 @@ begin
     o_wgsBramAddr <= std_logic_vector(to_unsigned(i_weightIdx 
                                                   + (i_channelIdx * KERNEL_SIZE)
                                                   , 9));
+
+    o_psumBramAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
 
 end arch;
