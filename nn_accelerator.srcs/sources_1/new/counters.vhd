@@ -124,7 +124,7 @@ begin
                             r_column <= 0;
                             r_row <= r_row + 1;
                             r_mapIdx <= r_mapIdx + 1;
-                            r_mapIdx <= r_mapIdxOld;
+                            r_mapIdxOld <= r_mapIdx;
                             r_mapPos <= W;
                         else
                             r_channelIdx <= r_channelIdx + 1;
