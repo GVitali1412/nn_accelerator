@@ -122,6 +122,7 @@ architecture arch of nn_accelerator is
     signal s_ctrlReg1       : std_logic_vector(31 downto 0);
     signal s_ctrlReg2       : std_logic_vector(31 downto 0);
     signal s_ctrlReg3       : std_logic_vector(31 downto 0);
+    signal s_rstCtrlReg     : std_logic;
 
     signal s_clearAccum     : std_logic;
     signal s_loadPartSum    : std_logic;
@@ -352,6 +353,7 @@ begin
     port map (
         clk             => clk,
         rstn            => rstn,
+        i_rstReg        => s_rstCtrlReg,
         o_reg0          => s_ctrlReg0,
         o_reg1          => s_ctrlReg1,
         o_reg2          => s_ctrlReg2,
@@ -382,6 +384,7 @@ begin
         i_ctrlReg1      => s_ctrlReg1,
         i_ctrlReg2      => s_ctrlReg2,
         i_ctrlReg3      => s_ctrlReg3,
+        o_rstCtrlReg    => s_rstCtrlReg,
         o_clearAccum    => s_clearAccum,
         o_loadPartSum   => s_loadPartSum,
         o_inBufEn       => in_bram_en_b,

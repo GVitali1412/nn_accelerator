@@ -17,10 +17,13 @@ architecture tb of tb_controller is
         );
         port (
             clk             : in std_logic;
+
+            -- AXI control registers
             i_ctrlReg0      : in std_logic_vector(31 downto 0);
             i_ctrlReg1      : in std_logic_vector(31 downto 0);
             i_ctrlReg2      : in std_logic_vector(31 downto 0);
             i_ctrlReg3      : in std_logic_vector(31 downto 0);
+            o_rstCtrlReg    : out std_logic;
     
             o_clearAccum    : out std_logic;
             o_loadPartSum   : out std_logic;
@@ -51,6 +54,7 @@ architecture tb of tb_controller is
     signal s_ctrlReg1       : std_logic_vector(31 downto 0);
     signal s_ctrlReg2       : std_logic_vector(31 downto 0);
     signal s_ctrlReg3       : std_logic_vector(31 downto 0);
+    signal s_rstCtrlReg     : std_logic;
     
     signal s_clearAccum     : std_logic;
     signal s_loadPartSum    : std_logic;
@@ -74,6 +78,7 @@ begin
         i_ctrlReg1      => s_ctrlReg1,
         i_ctrlReg2      => s_ctrlReg2,
         i_ctrlReg3      => s_ctrlReg3,
+        o_rstCtrlReg    => s_rstCtrlReg,
         o_clearAccum    => s_clearAccum,
         o_loadPartSum   => s_loadPartSum,
         o_inBufEn       => s_inBufEn,

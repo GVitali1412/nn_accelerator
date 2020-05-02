@@ -8,6 +8,7 @@ entity axi4lite_controls is
         clk             : in std_logic;
         rstn            : in std_logic;
         -- Registers
+        i_rstReg        : in std_logic;
         o_reg0          : out std_logic_vector(31 downto 0);
         o_reg1          : out std_logic_vector(31 downto 0);
         o_reg2          : out std_logic_vector(31 downto 0);
@@ -114,7 +115,7 @@ begin
         variable locAddr    : std_logic_vector(AXI_ADDR_WIDTH-3 downto 0);
     begin
         if rising_edge(clk) then
-            if rstn = '0' then
+            if rstn = '0' or i_rstReg = '1' then
                 reg0 <= (others => '0');
                 reg1 <= (others => '0');
                 reg2 <= (others => '0');

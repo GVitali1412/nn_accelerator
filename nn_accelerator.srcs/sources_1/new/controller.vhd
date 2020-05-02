@@ -11,10 +11,13 @@ entity controller is
     );
     port (
         clk             : in std_logic;
+
+        -- AXI control registers
         i_ctrlReg0      : in std_logic_vector(31 downto 0);
         i_ctrlReg1      : in std_logic_vector(31 downto 0);
         i_ctrlReg2      : in std_logic_vector(31 downto 0);
         i_ctrlReg3      : in std_logic_vector(31 downto 0);
+        o_rstCtrlReg    : out std_logic;
 
         o_clearAccum    : out std_logic;
         o_loadPartSum   : out std_logic;
@@ -82,22 +85,22 @@ begin
             when FETCH_INSTR =>
                 v_opcode := s_instr(63 downto 60);
                 case v_opcode is
-                when "0000" =>  -- Stop
+                when "0000" =>  -- Return to IDLE/reset state
                     state <= IDLE;
+                    r_instrPtr <= (others => '0');
 
                 when "0001" =>  -- Start convolution
                     state <= COMPUTE;
+                    r_instrPtr <= r_instrPtr + 1;
                 
                 when others =>
                     state <= STOP;
 
                 end case;
-
-                r_instrPtr <= r_instrPtr + 1;
             
             when COMPUTE =>
                 if s_done = '1' then
-                    state <= STOP;
+                    state <= FETCH_INSTR;
                 end if;
             
             when STOP =>
@@ -109,39 +112,54 @@ begin
     end process;
 
 
-    process(state)
+    process (state, s_instr, i_ctrlReg0)
     begin
         case state is
         when IDLE =>
             s_start <= '0';
+            if i_ctrlReg0(0) = '1' then
+                o_rstCtrlReg <= '1';
+            else
+                o_rstCtrlReg <= '0';
+            end if;
         when FETCH_INSTR =>
             if s_instr(63 downto 60) = "0001" then
                 s_start <= '1';
             else
                 s_start <= '0';
             end if;
+            o_rstCtrlReg <= '0';
         when others =>
             s_start <= '0';
+            o_rstCtrlReg <= '0';
         end case;
     end process;
 
 
-    o_inBufEn <= '1';
+    o_clearAccum <= '1' when state = COMPUTE and s_save = '1'
+        else '0';
 
-    o_outBufEn <= '1' when state = COMPUTE
-                  else '0';
-
-    o_outBufWe <= '1' when s_save = '1'
-                   else '0';
-
-    o_wgsBufEn <= '1';
-
-    o_clearAccum <= '1' when s_save = '1'
-                    else '0';
-    
     -- TODO enable partial sums buffer
-    o_psumBufEn <= '0';
     o_loadPartSum <= '0';
+
+    o_inBufEn <= '1' when state = COMPUTE
+                 else '0';
+
+    o_wgsBufEn <= '1' when state = COMPUTE
+                  else '0';
+    
+    o_psumBufEn <= '1' when state = COMPUTE
+                   else '0';
+    
+    o_outBufEn <= '1' when state = COMPUTE
+        else '0';
+
+    -- The CUs write to time to the first map position
+    -- the first while filling the pipeline
+    -- the second is the correct result and overwrite the first
+    o_outBufWe <= '1' when state = COMPUTE and s_save = '1'
+        else '0';
+
 
     counters : entity work.counters
     port map (
