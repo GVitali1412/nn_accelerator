@@ -12,7 +12,7 @@ architecture tb of tb_controller is
     component controller is
         generic (
             KERNEL_SIZE     : positive := 9;
-            N_CHANNELS      : positive := 8;
+            MAX_N_CHANNELS  : positive := 1024;
             MAP_SIZE        : positive := 13 * 13
         );
         port (
@@ -63,8 +63,8 @@ architecture tb of tb_controller is
     signal s_inBufAddr     : std_logic_vector(17 downto 0);
     signal s_wgsBufEn      : std_logic;
     signal s_wgsBufAddr    : std_logic_vector(8 downto 0);
-    signal s_psumBufEn      : std_logic;
-    signal s_psumBufAddr    : std_logic_vector(8 downto 0);
+    signal s_psumBufEn     : std_logic;
+    signal s_psumBufAddr   : std_logic_vector(8 downto 0);
     signal s_outBufEn      : std_logic;
     signal s_outBufWe      : std_logic;
     signal s_outBufAddr    : std_logic_vector(8 downto 0);

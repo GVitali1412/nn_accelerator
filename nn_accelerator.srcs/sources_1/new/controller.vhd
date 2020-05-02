@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity controller is
     generic (
         KERNEL_SIZE     : positive := 9;
-        N_CHANNELS      : positive := 8;
+        MAX_N_CHANNELS  : positive := 1024;
         MAP_SIZE        : positive := 13 * 13
     );
     port (
@@ -50,11 +50,15 @@ architecture arch of controller is
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
     signal s_instr          : std_logic_vector(63 downto 0);
 
+    -- Register containing the number of (input) channels minus 1 for the 
+    -- current computation block
+    signal r_nChannels      : unsigned(9 downto 0);
+
     signal s_start          : std_logic;
     signal s_done           : std_logic;
 
     signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
-    signal s_channelIdx     : natural range 0 to N_CHANNELS - 1;
+    signal s_channelIdx     : natural range 0 to MAX_N_CHANNELS - 1;
     signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
     signal s_mapIdxOld      : natural range 0 to MAP_SIZE - 1;
     signal s_save           : std_logic;
@@ -91,6 +95,7 @@ begin
 
                 when "0001" =>  -- Start convolution
                     state <= COMPUTE;
+                    r_nChannels <= unsigned(s_instr(59 downto 50));
                     r_instrPtr <= r_instrPtr + 1;
                 
                 when others =>
@@ -165,6 +170,7 @@ begin
     port map (
         clk             => clk,
         i_start         => s_start,
+        i_nChannels     => r_nChannels,
         o_weightIdx     => s_weightIdx,
         o_channelIdx    => s_channelIdx,
         o_mapIdx        => s_mapIdx,

@@ -6,13 +6,13 @@ use IEEE.NUMERIC_STD.ALL;
 entity addr_generator is
     generic (
         KERNEL_SIZE     : positive := 9;
-        N_CHANNELS      : positive := 8;
+        MAX_N_CHANNELS  : positive := 1024;
         MAP_SIZE        : positive := 13 * 13
     );
     port (
         clk             : in std_logic;
         i_weightIdx     : in natural range 0 to KERNEL_SIZE - 1;
-        i_channelIdx    : in natural range 0 to N_CHANNELS - 1;
+        i_channelIdx    : in natural range 0 to MAX_N_CHANNELS - 1;
         i_mapIdx        : in natural range 0 to MAP_SIZE - 1;
         i_mapIdxOld     : in natural range 0 to MAP_SIZE - 1;
         o_inBufAddr     : out std_logic_vector(17 downto 0);

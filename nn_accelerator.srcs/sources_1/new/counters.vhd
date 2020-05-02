@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity counters is
     generic (
         KERNEL_SIZE     : positive := 9;
-        N_CHANNELS      : positive := 8;
+        MAX_N_CHANNELS  : positive := 1024;
         N_ROWS          : positive := 13;
         N_COLUMNS       : positive := 13;
         MAP_SIZE        : positive := N_ROWS * N_COLUMNS
@@ -14,8 +14,9 @@ entity counters is
     port (
         clk             : in std_logic;
         i_start         : in std_logic;
+        i_nChannels     : in unsigned(9 downto 0);
         o_weightIdx     : out natural range 0 to KERNEL_SIZE - 1;
-        o_channelIdx    : out natural range 0 to N_CHANNELS - 1;
+        o_channelIdx    : out natural range 0 to MAX_N_CHANNELS - 1;
         o_mapIdx        : out natural range 0 to MAP_SIZE - 1;
         o_mapIdxOld     : out natural range 0 to MAP_SIZE - 1;
         o_save          : out std_logic;
@@ -29,7 +30,7 @@ architecture arch of counters is
     signal r_mapPos         : mapPos_type;
 
     signal r_weightIdx      : natural range 0 to KERNEL_SIZE + 2;
-    signal r_channelIdx     : natural range 0 to N_CHANNELS - 1;
+    signal r_channelIdx     : natural range 0 to MAX_N_CHANNELS - 1;
     signal r_mapIdx         : natural range 0 to MAP_SIZE - 1;
     signal r_mapIdxOld      : natural range 0 to MAP_SIZE - 1;
     signal r_row            : natural range 0 to N_ROWS - 1;
@@ -73,7 +74,7 @@ begin
 
                 when NW =>  -- Top left corner
                     if r_weightIdx = 8 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -94,7 +95,7 @@ begin
 
                 when N =>  -- Top border
                     if r_weightIdx = 8 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -116,7 +117,7 @@ begin
 
                 when NE =>  -- Top right corner
                     if r_weightIdx = 7 then  
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Go to the next row
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -138,7 +139,7 @@ begin
 
                 when W =>  -- Left border
                     if r_weightIdx = 8 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -161,7 +162,7 @@ begin
 
                 when C =>  -- Not on a border/corner
                     if r_weightIdx = 8 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -183,7 +184,7 @@ begin
 
                 when E =>  -- Right border
                     if r_weightIdx = 7 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Go to the next row
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -212,7 +213,7 @@ begin
 
                 when SW =>  -- Bottom left corner
                     if r_weightIdx = 5 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -233,7 +234,7 @@ begin
 
                 when S =>  -- Bottom border
                     if r_weightIdx = 5 then
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- Move to the right
                             v_saveFlag := '1';
                             r_channelIdx <= 0;
@@ -255,7 +256,7 @@ begin
 
                 when SE =>  -- Bottom right corner
                     if r_weightIdx = 4 then  
-                        if r_channelIdx = N_CHANNELS-1 then
+                        if r_channelIdx = i_nChannels then
                             -- End reached
                             v_saveFlag := '1';
                             r_done <= '1';
