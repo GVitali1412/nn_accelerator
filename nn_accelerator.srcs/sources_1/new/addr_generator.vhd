@@ -25,6 +25,10 @@ end addr_generator;
 architecture arch of addr_generator is
 
     signal s_offset         : integer range -16 to 16;
+    signal r_inBufAddr      : std_logic_vector(17 downto 0);
+    signal r_wgsBufAddr     : std_logic_vector(8 downto 0);
+    signal r_psumBufAddr    : std_logic_vector(8 downto 0);
+    signal r_outBufAddr     : std_logic_vector(8 downto 0);
 
 begin
 
@@ -39,17 +43,29 @@ begin
                      13 when 7,
                      14 when 8,
                      0  when others;
+
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            r_inBufAddr  <= std_logic_vector(to_unsigned(
+                                                i_mapIdx
+                                                + (i_channelIdx * MAP_SIZE)
+                                                + s_offset, 18));
+
+            r_wgsBufAddr <= std_logic_vector(to_unsigned(
+                                                i_weightIdx 
+                                                + (i_channelIdx * KERNEL_SIZE)
+                                                , 9));
+
+            r_psumBufAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
+
+            r_outBufAddr <= std_logic_vector(to_unsigned(i_mapIdxOld, 9));
+        end if;
+    end process;
     
-    o_inBufAddr  <= std_logic_vector(to_unsigned(i_mapIdx
-                                                  + (i_channelIdx * MAP_SIZE)
-                                                  + s_offset, 18));
-
-    o_wgsBufAddr <= std_logic_vector(to_unsigned(i_weightIdx 
-                                                  + (i_channelIdx * KERNEL_SIZE)
-                                                  , 9));
-
-    o_psumBufAddr <= std_logic_vector(to_unsigned(i_mapIdx, 9));
-
-    o_outBufAddr <= std_logic_vector(to_unsigned(i_mapIdxOld, 9));
+    o_inBufAddr  <= r_inBufAddr;
+    o_wgsBufAddr <= r_wgsBufAddr;
+    o_psumBufAddr <= r_psumBufAddr;
+    o_outBufAddr <= r_outBufAddr;
 
 end arch;
