@@ -21,6 +21,7 @@ entity controller is
 
         o_clearAccum    : out std_logic;
         o_loadPartSum   : out std_logic;
+        o_enActivation  : out std_logic;
 
         -- in buffer
         o_inBufEn       : out std_logic;
@@ -53,6 +54,8 @@ architecture arch of controller is
     -- Register containing the number of (input) channels minus 1 for the 
     -- current computation block
     signal r_nChannels      : unsigned(9 downto 0);
+    signal r_firstBlock     : std_logic;
+    signal r_lastBlock      : std_logic;
 
     signal s_start          : std_logic;
     signal s_done           : std_logic;
@@ -96,6 +99,8 @@ begin
                 when "0001" =>  -- Start convolution
                     state <= COMPUTE;
                     r_nChannels <= unsigned(s_instr(59 downto 50));
+                    r_firstBlock <= s_instr(49);
+                    r_lastBlock <= s_instr(48);
                     r_instrPtr <= r_instrPtr + 1;
                 
                 when others =>
@@ -141,11 +146,20 @@ begin
     end process;
 
 
-    o_clearAccum <= '1' when state = COMPUTE and s_save = '1'
-        else '0';
+    o_clearAccum <= '1' when state = COMPUTE 
+                             and s_save = '1' 
+                             and r_firstBlock = '1'
+                    else '0';
 
-    -- TODO enable partial sums buffer
-    o_loadPartSum <= '0';
+    o_loadPartSum <= '1' when state = COMPUTE
+                              and s_save = '1'
+                              and r_firstBlock = '0'
+                     else '0';
+
+    -- If the current block is the last layer save the results with the 
+    -- activation function, otherwise save the partial sums
+    o_enActivation <= '1' when r_lastBlock = '1'
+                      else '0';
 
     o_inBufEn <= '1' when state = COMPUTE
                  else '0';

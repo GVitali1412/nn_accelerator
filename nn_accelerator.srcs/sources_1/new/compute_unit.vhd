@@ -24,30 +24,31 @@ architecture arch of compute_unit is
 
     signal r_value          : signed(DATA_WIDTH-1 downto 0);
     signal r_weight         : signed(DATA_WIDTH-1 downto 0);
-    signal r_partialSumIn   : signed(DATA_WIDTH-1 downto 0);
+    signal r_partialSumIn   : signed(2*DATA_WIDTH-1 downto 0);
     signal r_accumulator    : signed(2*DATA_WIDTH-1 downto 0);
     signal s_activation     : signed(DATA_WIDTH-1 downto 0);
     signal s_partialSumOut  : signed(DATA_WIDTH-1 downto 0);
 
 begin
 
-    -- Register the input value and the weight
+    -- Pipeline registers for input value, weight and partial sum
     process (clk)
     begin
         if rising_edge(clk) then
             r_value <= i_value;
             r_weight <= i_weight;
-            r_partialSumIn <= i_partialSumIn;
+            r_partialSumIn <= shift_left(resize(i_partialSumIn, 2*DATA_WIDTH), 3);
         end if;
     end process;
 
     process (clk)
     begin
         if rising_edge(clk) then
-            -- Clear the accumulator
             if i_clearAccum = '1' then
+                -- Clear the accumulator
                 r_accumulator <= r_value * r_weight;
             elsif i_loadPartSum = '1' then
+                -- Add to the loaded partial sum
                 r_accumulator <= r_partialSumIn + (r_value * r_weight);
             else
                 r_accumulator <= r_accumulator + (r_value * r_weight);

@@ -126,6 +126,7 @@ architecture arch of nn_accelerator is
 
     signal s_clearAccum     : std_logic;
     signal s_loadPartSum    : std_logic;
+    signal s_enActivation   : std_logic;
 
     signal in_bram_en_a     : std_logic;
     signal in_bram_we_a     : std_logic_vector(3 downto 0);
@@ -387,6 +388,7 @@ begin
         o_rstCtrlReg    => s_rstCtrlReg,
         o_clearAccum    => s_clearAccum,
         o_loadPartSum   => s_loadPartSum,
+        o_enActivation  => s_enActivation,
         o_inBufEn       => in_bram_en_b,
         o_inBufAddr     => in_bram_addr_b,
         o_wgsBufEn      => w_bram_en_b,
@@ -403,6 +405,7 @@ begin
         clk             => clk,
         i_clearAccum    => s_clearAccum,
         i_loadPartSum   => s_loadPartSum,
+        i_enActivation  => s_enActivation,
         i_inBufData     => in_bram_rddata_b,
         i_wgsBufData    => w_bram_rddata_b,
         i_psumBufData   => ps_bram_rddata_b,

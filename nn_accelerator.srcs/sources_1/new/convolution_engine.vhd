@@ -12,6 +12,7 @@ entity convolution_engine is
         clk             : in std_logic;
         i_clearAccum    : in std_logic;
         i_loadPartSum   : in std_logic;
+        i_enActivation  : in std_logic;
         i_inBufData     : in std_logic_vector(7 downto 0);
         i_wgsBufData    : in std_logic_vector(1023 downto 0);
         i_psumBufData   : in std_logic_vector(1023 downto 0);
@@ -29,7 +30,7 @@ begin
             clk             => clk,
             i_clearAccum    => i_clearAccum,
             i_loadPartSum   => i_loadPartSum,
-            i_enActivation  => '1',
+            i_enActivation  => i_enActivation,
             i_value         => signed(i_inBufData),
             i_weight        => signed(i_wgsBufData(DATA_WIDTH*(i+1)-1 
                                                    downto DATA_WIDTH*i)),

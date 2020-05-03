@@ -27,6 +27,7 @@ architecture tb of tb_controller is
     
             o_clearAccum    : out std_logic;
             o_loadPartSum   : out std_logic;
+            o_enActivation  : out std_logic;
     
             -- in buffer
             o_inBufEn       : out std_logic;
@@ -58,16 +59,17 @@ architecture tb of tb_controller is
     
     signal s_clearAccum     : std_logic;
     signal s_loadPartSum    : std_logic;
+    signal s_enActivation   : std_logic;
     
-    signal s_inBufEn       : std_logic;
-    signal s_inBufAddr     : std_logic_vector(17 downto 0);
-    signal s_wgsBufEn      : std_logic;
-    signal s_wgsBufAddr    : std_logic_vector(8 downto 0);
-    signal s_psumBufEn     : std_logic;
-    signal s_psumBufAddr   : std_logic_vector(8 downto 0);
-    signal s_outBufEn      : std_logic;
-    signal s_outBufWe      : std_logic;
-    signal s_outBufAddr    : std_logic_vector(8 downto 0);
+    signal s_inBufEn        : std_logic;
+    signal s_inBufAddr      : std_logic_vector(17 downto 0);
+    signal s_wgsBufEn       : std_logic;
+    signal s_wgsBufAddr     : std_logic_vector(8 downto 0);
+    signal s_psumBufEn      : std_logic;
+    signal s_psumBufAddr    : std_logic_vector(8 downto 0);
+    signal s_outBufEn       : std_logic;
+    signal s_outBufWe       : std_logic;
+    signal s_outBufAddr     : std_logic_vector(8 downto 0);
     
 begin
 
@@ -81,6 +83,7 @@ begin
         o_rstCtrlReg    => s_rstCtrlReg,
         o_clearAccum    => s_clearAccum,
         o_loadPartSum   => s_loadPartSum,
+        o_enActivation  => s_enActivation,
         o_inBufEn       => s_inBufEn,
         o_inBufAddr     => s_inBufAddr,
         o_wgsBufEn      => s_wgsBufEn,
