@@ -7,7 +7,7 @@ entity controller is
     generic (
         KERNEL_SIZE     : positive := 9;
         MAX_N_CHANNELS  : positive := 1024;
-        MAP_SIZE        : positive := 13 * 13
+        MAX_MAP_SIZE    : positive := 256 * 256
     );
     port (
         clk             : in std_logic;
@@ -52,8 +52,15 @@ architecture arch of controller is
     signal s_instr          : std_logic_vector(63 downto 0);
 
     -- Register containing the number of (input) channels minus 1 for the 
-    -- current computation block
-    signal r_nChannels      : unsigned(9 downto 0);
+    -- current computation block = index of the last channel
+    signal r_lastChanIdx    : unsigned(9 downto 0);
+
+    -- Registers representing the size of the input maps
+    -- (all values are represented as real_size-1)
+    signal r_nMapRows       : unsigned(7 downto 0);
+    signal r_nMapColumns    : unsigned(7 downto 0);
+    signal r_mapSize        : unsigned(15 downto 0);
+
     signal r_firstBlock     : std_logic;
     signal r_lastBlock      : std_logic;
 
@@ -62,8 +69,8 @@ architecture arch of controller is
 
     signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
     signal s_channelIdx     : natural range 0 to MAX_N_CHANNELS - 1;
-    signal s_mapIdx         : natural range 0 to MAP_SIZE - 1;
-    signal s_mapIdxOld      : natural range 0 to MAP_SIZE - 1;
+    signal s_mapIdx         : natural range 0 to MAX_MAP_SIZE - 1;
+    signal s_mapIdxOld      : natural range 0 to MAX_MAP_SIZE - 1;
     signal s_save           : std_logic;
 
     component instruction_rom
@@ -98,9 +105,13 @@ begin
 
                 when "0001" =>  -- Start convolution
                     state <= COMPUTE;
-                    r_nChannels <= unsigned(s_instr(59 downto 50));
+                    r_lastChanIdx <= unsigned(s_instr(59 downto 50));
                     r_firstBlock <= s_instr(49);
                     r_lastBlock <= s_instr(48);
+                    r_nMapRows <= unsigned(s_instr(47 downto 40));
+                    r_nMapColumns <= unsigned(s_instr(39 downto 32));
+                    r_mapSize <= ((unsigned(s_instr(47 downto 40)) + 1)
+                                  * (unsigned(s_instr(39 downto 32)) + 1)) - 1;
                     r_instrPtr <= r_instrPtr + 1;
                 
                 when others =>
@@ -184,7 +195,9 @@ begin
     port map (
         clk             => clk,
         i_start         => s_start,
-        i_nChannels     => r_nChannels,
+        i_lastChanIdx   => r_lastChanIdx,
+        i_nMapRows      => r_nMapRows,
+        i_nMapColumns   => r_nMapColumns,
         o_weightIdx     => s_weightIdx,
         o_channelIdx    => s_channelIdx,
         o_mapIdx        => s_mapIdx,
@@ -200,6 +213,7 @@ begin
         i_channelIdx    => s_channelIdx,
         i_mapIdx        => s_mapIdx,
         i_mapIdxOld     => s_mapIdxOld,
+        i_mapSize       => r_mapSize,
         o_inBufAddr     => o_inBufAddr,
         o_wgsBufAddr    => o_wgsBufAddr,
         o_psumBufAddr   => o_psumBufAddr,

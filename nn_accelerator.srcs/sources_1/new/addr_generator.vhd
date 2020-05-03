@@ -7,14 +7,15 @@ entity addr_generator is
     generic (
         KERNEL_SIZE     : positive := 9;
         MAX_N_CHANNELS  : positive := 1024;
-        MAP_SIZE        : positive := 13 * 13
+        MAX_MAP_SIZE    : positive := 256 * 256
     );
     port (
         clk             : in std_logic;
         i_weightIdx     : in natural range 0 to KERNEL_SIZE - 1;
         i_channelIdx    : in natural range 0 to MAX_N_CHANNELS - 1;
-        i_mapIdx        : in natural range 0 to MAP_SIZE - 1;
-        i_mapIdxOld     : in natural range 0 to MAP_SIZE - 1;
+        i_mapIdx        : in natural range 0 to MAX_MAP_SIZE - 1;
+        i_mapIdxOld     : in natural range 0 to MAX_MAP_SIZE - 1;
+        i_mapSize       : in unsigned(15 downto 0);
         o_inBufAddr     : out std_logic_vector(17 downto 0);
         o_wgsBufAddr    : out std_logic_vector(8 downto 0);
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
@@ -49,7 +50,7 @@ begin
         if rising_edge(clk) then
             r_inBufAddr  <= std_logic_vector(to_unsigned(
                                                 i_mapIdx
-                                                + (i_channelIdx * MAP_SIZE)
+                                                + (i_channelIdx * to_integer(i_mapSize))
                                                 + s_offset, 18));
 
             r_wgsBufAddr <= std_logic_vector(to_unsigned(

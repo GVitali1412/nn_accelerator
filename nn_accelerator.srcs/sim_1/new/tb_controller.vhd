@@ -13,7 +13,7 @@ architecture tb of tb_controller is
         generic (
             KERNEL_SIZE     : positive := 9;
             MAX_N_CHANNELS  : positive := 1024;
-            MAP_SIZE        : positive := 13 * 13
+            MAX_MAP_SIZE    : positive := 256 * 256
         );
         port (
             clk             : in std_logic;
