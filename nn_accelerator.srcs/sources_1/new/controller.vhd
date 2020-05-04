@@ -64,6 +64,11 @@ architecture arch of controller is
     signal r_firstBlock     : std_logic;
     signal r_lastBlock      : std_logic;
 
+    signal r_inBaseAddr     : unsigned(17 downto 0);
+    signal r_wgsBaseAddr    : unsigned(8 downto 0);
+    signal r_psumBaseAddr   : unsigned(8 downto 0);
+    signal r_outBaseAddr    : unsigned(8 downto 0);
+
     signal s_start          : std_logic;
     signal s_done           : std_logic;
 
@@ -94,6 +99,7 @@ begin
             when IDLE =>
                 if i_ctrlReg0(0) = '1' then
                     state <= FETCH_INSTR;
+                    r_instrPtr <= (0 => '1', others => '0');
                 end if;
             
             when FETCH_INSTR =>
@@ -112,6 +118,12 @@ begin
                     r_nMapColumns <= unsigned(s_instr(39 downto 32));
                     r_mapSize <= ((unsigned(s_instr(47 downto 40)) + 1)
                                   * (unsigned(s_instr(39 downto 32)) + 1)) - 1;
+
+                when "0010" =>  -- Load base addresses
+                    r_inBaseAddr <= unsigned(s_instr(59 downto 42));
+                    r_wgsBaseAddr <= unsigned(s_instr(41 downto 33));
+                    r_psumBaseAddr <= unsigned(s_instr(32 downto 24));
+                    r_outBaseAddr <= unsigned(s_instr(23 downto 15));
                     r_instrPtr <= r_instrPtr + 1;
                 
                 when others =>
@@ -122,6 +134,7 @@ begin
             when COMPUTE =>
                 if s_done = '1' then
                     state <= FETCH_INSTR;
+                    r_instrPtr <= r_instrPtr + 1;
                 end if;
             
             when STOP =>
@@ -209,6 +222,10 @@ begin
     addresses_generator : entity work.addr_generator
     port map (
         clk             => clk,
+        i_inBaseAddr    => r_inBaseAddr,
+        i_wgsBaseAddr   => r_wgsBaseAddr,
+        i_psumBaseAddr  => r_psumBaseAddr,
+        i_outBaseAddr   => r_outBaseAddr,
         i_weightIdx     => s_weightIdx,
         i_channelIdx    => s_channelIdx,
         i_mapIdx        => s_mapIdx,
