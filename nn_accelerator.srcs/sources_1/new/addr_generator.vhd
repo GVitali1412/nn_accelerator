@@ -20,6 +20,7 @@ entity addr_generator is
         i_mapIdx        : in natural range 0 to MAX_MAP_SIZE - 1;
         i_mapIdxOld     : in natural range 0 to MAX_MAP_SIZE - 1;
         i_mapSize       : in unsigned(15 downto 0);
+        i_nMapColumns   : in unsigned(7 downto 0);
         o_inBufAddr     : out std_logic_vector(17 downto 0);
         o_wgsBufAddr    : out std_logic_vector(8 downto 0);
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
@@ -38,15 +39,15 @@ architecture arch of addr_generator is
 begin
 
     with i_weightIdx select
-        s_offset <= -14 when 0,
-                    -13 when 1,
-                    -12 when 2,
+        s_offset <= -to_integer(i_nMapColumns+1) when 0,
+                    -to_integer(i_nMapColumns) when 1,
+                    -to_integer(i_nMapColumns-1) when 2,
                     -1  when 3,
                      0  when 4,
                      1  when 5,
-                     12 when 6,
-                     13 when 7,
-                     14 when 8,
+                     to_integer(i_nMapColumns-1) when 6,
+                     to_integer(i_nMapColumns) when 7,
+                     to_integer(i_nMapColumns+1) when 8,
                      0  when others;
 
     process (clk)

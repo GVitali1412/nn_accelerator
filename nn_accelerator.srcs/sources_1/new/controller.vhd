@@ -235,6 +235,7 @@ begin
         i_mapIdx        => s_mapIdx,
         i_mapIdxOld     => s_mapIdxOld,
         i_mapSize       => r_mapSize,
+        i_nMapColumns   => r_nMapColumns,
         o_inBufAddr     => o_inBufAddr,
         o_wgsBufAddr    => o_wgsBufAddr,
         o_psumBufAddr   => o_psumBufAddr,
