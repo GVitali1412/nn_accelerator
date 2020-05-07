@@ -105,7 +105,7 @@ begin
                             r_column <= r_column + 1;
                             r_mapIdx <= r_mapIdx + 1;
                             r_mapIdxOld <= r_mapIdx;
-                            if r_column = i_nMapColumns - 1 then
+                            if r_column = i_nMapColumns - 2 then
                                 -- Top right corner reached
                                 r_mapPos <= NE;
                             end if;
@@ -172,7 +172,7 @@ begin
                             r_column <= r_column + 1;
                             r_mapIdx <= r_mapIdx + 1;
                             r_mapIdxOld <= r_mapIdx;
-                            if r_column = i_nMapColumns - 1 then
+                            if r_column = i_nMapColumns - 2 then
                                 -- Rigth border reached
                                 r_mapPos <= E;
                             end if;
@@ -195,7 +195,7 @@ begin
                             r_row <= r_row + 1;
                             r_mapIdx <= r_mapIdx + 1;
                             r_mapIdxOld <= r_mapIdx;
-                            if r_row = i_nMapRows - 1 then
+                            if r_row = i_nMapRows - 2 then
                                 -- Next row will be the last one
                                 r_mapPos <= SW;
                             else
@@ -244,7 +244,7 @@ begin
                             r_column <= r_column + 1;
                             r_mapIdx <= r_mapIdx + 1;
                             r_mapIdxOld <= r_mapIdx;
-                            if r_column = i_nMapColumns - 1 then
+                            if r_column = i_nMapColumns - 2 then
                                 -- Bottom right corner reached
                                 r_mapPos <= SE;
                             end if;

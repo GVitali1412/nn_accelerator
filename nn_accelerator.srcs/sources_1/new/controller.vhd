@@ -44,19 +44,18 @@ end controller;
 
 architecture arch of controller is
 
-    type state_type is (IDLE, FETCH_INSTR, COMPUTE, STOP);
+    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP);
     signal state            : state_type := IDLE;
 
     signal s_enInstrRom     : std_logic;
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
+    signal r_currInstr      : std_logic_vector(63 downto 0);
     signal s_instr          : std_logic_vector(63 downto 0);
 
     -- Register containing the number of (input) channels minus 1 for the 
     -- current computation block = index of the last channel
     signal r_lastChanIdx    : unsigned(9 downto 0);
 
-    -- Registers representing the size of the input maps
-    -- (all values are represented as real_size-1)
     signal r_nMapRows       : unsigned(7 downto 0);
     signal r_nMapColumns    : unsigned(7 downto 0);
     signal r_mapSize        : unsigned(15 downto 0);
@@ -64,10 +63,10 @@ architecture arch of controller is
     signal r_firstBlock     : std_logic;
     signal r_lastBlock      : std_logic;
 
-    signal r_inBaseAddr     : unsigned(17 downto 0);
-    signal r_wgsBaseAddr    : unsigned(8 downto 0);
-    signal r_psumBaseAddr   : unsigned(8 downto 0);
-    signal r_outBaseAddr    : unsigned(8 downto 0);
+    signal r_inBaseAddr     : unsigned(17 downto 0) := (others => '0');
+    signal r_wgsBaseAddr    : unsigned(8 downto 0) := (others => '0');
+    signal r_psumBaseAddr   : unsigned(8 downto 0) := (others => '0');
+    signal r_outBaseAddr    : unsigned(8 downto 0) := (others => '0');
 
     signal s_start          : std_logic;
     signal s_done           : std_logic;
@@ -95,15 +94,21 @@ begin
         variable v_opcode : std_logic_vector(3 downto 0);
     begin
         if rising_edge(clk) then
+            r_currInstr <= s_instr;
+
             case state is
             when IDLE =>
                 if i_ctrlReg0(0) = '1' then
                     state <= FETCH_INSTR;
-                    r_instrPtr <= (0 => '1', others => '0');
+                    r_instrPtr <= (others => '0');
                 end if;
             
             when FETCH_INSTR =>
-                v_opcode := s_instr(63 downto 60);
+                state <= DECODE_INSTR;
+                r_instrPtr <= r_instrPtr + 1;
+            
+            when DECODE_INSTR =>
+                v_opcode := r_currInstr(63 downto 60);
                 case v_opcode is
                 when "0000" =>  -- Return to IDLE/reset state
                     state <= IDLE;
@@ -111,30 +116,29 @@ begin
 
                 when "0001" =>  -- Start convolution
                     state <= COMPUTE;
-                    r_lastChanIdx <= unsigned(s_instr(59 downto 50));
-                    r_firstBlock <= s_instr(49);
-                    r_lastBlock <= s_instr(48);
-                    r_nMapRows <= unsigned(s_instr(47 downto 40));
-                    r_nMapColumns <= unsigned(s_instr(39 downto 32));
-                    r_mapSize <= ((unsigned(s_instr(47 downto 40)) + 1)
-                                  * (unsigned(s_instr(39 downto 32)) + 1)) - 1;
+                    r_lastChanIdx <= unsigned(r_currInstr(59 downto 50));
+                    r_firstBlock <= r_currInstr(49);
+                    r_lastBlock <= r_currInstr(48);
+                    r_nMapRows <= unsigned(r_currInstr(47 downto 40));
+                    r_nMapColumns <= unsigned(r_currInstr(39 downto 32));
+                    r_mapSize <= unsigned(r_currInstr(47 downto 40))
+                                 * unsigned(r_currInstr(39 downto 32));
 
                 when "0010" =>  -- Load base addresses
-                    r_inBaseAddr <= unsigned(s_instr(59 downto 42));
-                    r_wgsBaseAddr <= unsigned(s_instr(41 downto 33));
-                    r_psumBaseAddr <= unsigned(s_instr(32 downto 24));
-                    r_outBaseAddr <= unsigned(s_instr(23 downto 15));
-                    r_instrPtr <= r_instrPtr + 1;
+                    state <= FETCH_INSTR;
+                    r_inBaseAddr <= unsigned(r_currInstr(59 downto 42));
+                    r_wgsBaseAddr <= unsigned(r_currInstr(41 downto 33));
+                    r_psumBaseAddr <= unsigned(r_currInstr(32 downto 24));
+                    r_outBaseAddr <= unsigned(r_currInstr(23 downto 15));
                 
                 when others =>
                     state <= STOP;
 
                 end case;
-            
+                
             when COMPUTE =>
                 if s_done = '1' then
                     state <= FETCH_INSTR;
-                    r_instrPtr <= r_instrPtr + 1;
                 end if;
             
             when STOP =>
@@ -146,7 +150,7 @@ begin
     end process;
 
 
-    process (state, s_instr, i_ctrlReg0)
+    process (state, r_currInstr, i_ctrlReg0)
     begin
         case state is
         when IDLE =>
@@ -156,8 +160,8 @@ begin
             else
                 o_rstCtrlReg <= '0';
             end if;
-        when FETCH_INSTR =>
-            if s_instr(63 downto 60) = "0001" then
+        when DECODE_INSTR =>
+            if r_currInstr(63 downto 60) = "0001" then
                 s_start <= '1';
             else
                 s_start <= '0';
