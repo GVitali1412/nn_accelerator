@@ -43,7 +43,7 @@ end cdma_dispatcher;
 
 architecture arch of cdma_dispatcher is
 
-    type state_type is (IDLE, DEQUEUE, WRITE_SRC, WRITE_DST, WRITE_BTT, WAIT_DMA);
+    type state_type is (IDLE, DEQUEUE, WRITE_SRC, WRITE_DST, WRITE_BTT, WAIT_DMA, RESET);
     signal state            : state_type := IDLE;
     
     signal s_dequeueReq     : std_logic;
@@ -100,26 +100,27 @@ begin
                 "10000000000000000000000000100000" when state = WRITE_DST  -- Offset 0x20
                     else
                 "10000000000000000000000000101000" when state = WRITE_BTT  -- Offset 0x28
-                    else "10000000000000000000000000011000";
+                    else "10000000000000000000000000000000";  -- Offset 0x04
     
     o_wdata <= r_srcAddr when state = WRITE_SRC
                     else
                r_dstAddr when state = WRITE_DST
                     else
                r_btt when state = WRITE_BTT
+                    else
+               (2 => '1', others => '0') when state = RESET
                     else (others => '0');
     
     o_dmaDone <= r_done;
 
     process (clk)
-        variable v_idle : std_logic;
     begin
         if rising_edge(clk) then
             case state is
             when IDLE =>
-                if s_queueEmpty = '0' then
+                r_done <= '0';
+                if s_queueEmpty = '0' and (i_rvalid and i_rdata(1) and not i_rdata(12)) = '1' then
                     state <= DEQUEUE;
-                    r_done <= '0';
                     r_srcAddr(31 downto 12) <= s_queueDataOut(59 downto 40);
                     r_srcAddr(11 downto 0) <= (others => '0');
                     r_dstAddr(31 downto 12) <= s_queueDataOut(39 downto 20);
@@ -164,10 +165,21 @@ begin
                 end if;
 
             when WAIT_DMA =>  -- Wait for the completion of the DMA transfer
-                v_idle := i_rdata(1);
-                if (i_rvalid and v_idle) = '1' then
+                if (i_rvalid and i_rdata(1) and i_rdata(12)) = '1' then  -- CDMA in idle state and IOC set
+                    state <= RESET;
+                    r_awvalid <= '1';
+                    r_wvalid <= '1';
+                end if;
+            
+            when RESET =>
+                if i_bvalid = '1' then
                     state <= IDLE;
-                    r_done <= '1';  -- Assert o_dmaDone for at least one cycle
+                    r_done <= '1';
+                    r_awvalid <= '0';
+                    r_wvalid <= '0';
+                else
+                    if i_awready = '1' then r_awvalid <= '0'; end if;
+                    if i_wready = '1' then r_wvalid <= '0'; end if;
                 end if;
 
             end case;

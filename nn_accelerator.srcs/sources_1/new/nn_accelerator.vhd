@@ -62,7 +62,25 @@ entity nn_accelerator is
         s00_axi_rdata   : out std_logic_vector(31 downto 0);
         s00_axi_rresp   : out std_logic_vector(1 downto 0);
         s00_axi_rvalid  : out std_logic;
-        s00_axi_rready  : in std_logic
+        s00_axi_rready  : in std_logic;
+        
+        -- CDMA axi master interface
+        m00_axi_araddr  : out std_logic_vector(31 downto 0);
+        m00_axi_arvalid : out std_logic;
+        m00_axi_arready : in std_logic;
+        m00_axi_rdata   : in std_logic_vector(31 downto 0);
+        m00_axi_rresp   : in std_logic_vector(1 downto 0);
+        m00_axi_rvalid  : in std_logic;
+        m00_axi_rready  : out std_logic;
+        m00_axi_awaddr  : out std_logic_vector(31 downto 0);
+        m00_axi_awvalid : out std_logic;
+        m00_axi_awready : in std_logic;
+        m00_axi_wdata   : out std_logic_vector(31 downto 0);
+        m00_axi_wvalid  : out std_logic;
+        m00_axi_wready  : in std_logic;
+        m00_axi_bresp   : in std_logic_vector(1 downto 0);
+        m00_axi_bvalid  : in std_logic;
+        m00_axi_bready  : out std_logic
     );
 end nn_accelerator;
 
@@ -102,6 +120,12 @@ architecture arch of nn_accelerator is
     signal s_instrPtr       : std_logic_vector(8 downto 0);
     signal s_enInstr        : std_logic;
 
+    -- CDMA signals
+    signal s_dmaDone        : std_logic;
+    signal s_queueDataIn    : std_logic_vector(63 downto 0);
+    signal s_enqueuReq      : std_logic;
+    signal s_queueFull      : std_logic;
+    
 
     component input_buffer
         port (
@@ -262,7 +286,11 @@ begin
         o_psumBufAddr   => s_psumBufRAddr,
         o_outBufEn      => s_outBufWEn,
         o_outBufWe      => s_outBufWe(0),
-        o_outBufAddr    => s_outBufWAddr
+        o_outBufAddr    => s_outBufWAddr,
+        i_dmaDone       => s_dmaDone,
+        o_queueDataIn   => s_queueDataIn,
+        o_enqueueReq    => s_enqueuReq,
+        i_queueFull     => s_queueFull
     );
 
     conv_engine : entity work.convolution_engine
@@ -276,6 +304,33 @@ begin
         i_psumBufData   => s_psumBufRData,
         o_outBufData    => s_outBufWData
     );
+
+    dispatcher : entity work.cdma_dispatcher
+    port map (
+        clk             => clk,
+        i_reset         => s_reset,
+        o_dmaDone       => s_dmaDone,
+        i_queueDataIn   => s_queueDataIn,
+        i_enqueueReq    => s_enqueuReq,
+        o_queueFull     => s_queueFull,
+        o_araddr        => m00_axi_araddr,
+        o_arvalid       => m00_axi_arvalid,
+        i_arready       => m00_axi_arready,
+        i_rdata         => m00_axi_rdata,
+        i_rresp         => m00_axi_rresp,
+        i_rvalid        => m00_axi_rvalid,
+        o_rready        => m00_axi_rready,
+        o_awaddr        => m00_axi_awaddr,
+        o_awvalid       => m00_axi_awvalid,
+        i_awready       => m00_axi_awready,
+        o_wdata         => m00_axi_wdata,
+        o_wvalid        => m00_axi_wvalid,
+        i_wready        => m00_axi_wready,
+        i_bresp         => m00_axi_bresp,
+        i_bvalid        => m00_axi_bvalid,
+        o_bready        => m00_axi_bready
+    );
+
 
     in_buffer : input_buffer
     port map (

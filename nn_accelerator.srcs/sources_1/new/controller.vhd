@@ -43,13 +43,18 @@ entity controller is
         -- Output buffer
         o_outBufEn      : out std_logic;
         o_outBufWe      : out std_logic;
-        o_outBufAddr    : out std_logic_vector(8 downto 0)
+        o_outBufAddr    : out std_logic_vector(8 downto 0);
+
+        i_dmaDone       : in std_logic;
+        o_queueDataIn   : out std_logic_vector(63 downto 0);
+        o_enqueueReq    : out std_logic;
+        i_queueFull     : in std_logic
     );
 end controller;
 
 architecture arch of controller is
 
-    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP);
+    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP, DMA);
     signal state            : state_type := IDLE;
 
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
@@ -127,6 +132,9 @@ begin
                     r_psumBaseAddr <= unsigned(r_currInstr(31 downto 23));
                     r_outBaseAddr <= unsigned(r_currInstr(22 downto 14));
                 
+                when "0011" =>  -- DMA transfer
+                    state <= DMA;
+                
                 when others =>
                     state <= STOP;
 
@@ -139,6 +147,11 @@ begin
             
             when STOP =>
                 state <= STOP;
+            
+            when DMA =>
+                if i_dmaDone = '1' then
+                    state <= FETCH_INSTR;
+                end if;
 
             end case;
 
@@ -202,6 +215,12 @@ begin
     -- the second is the correct result and overwrite the first
     o_outBufWe <= '1' when state = COMPUTE and s_save = '1'
         else '0';
+
+    o_enqueueReq <= '1' when state = DECODE_INSTR and r_currInstr(63 downto 60) = "0011"
+                    else '0';
+
+    o_queueDataIn <= r_currInstr when state = DECODE_INSTR and r_currInstr(63 downto 60) = "0011"
+                     else (others => '0');
 
 
     counters : entity work.counters
