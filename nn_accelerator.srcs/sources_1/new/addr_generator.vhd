@@ -11,8 +11,8 @@ entity addr_generator is
     );
     port (
         clk             : in std_logic;
-        i_inBaseAddr    : in unsigned(17 downto 0);
-        i_wgsBaseAddr   : in unsigned(8 downto 0);
+        i_inBaseAddr    : in unsigned(16 downto 0);
+        i_wgsBaseAddr   : in unsigned(10 downto 0);
         i_psumBaseAddr  : in unsigned(8 downto 0);
         i_outBaseAddr   : in unsigned(8 downto 0);
         i_weightIdx     : in natural range 0 to KERNEL_SIZE - 1;
@@ -21,8 +21,8 @@ entity addr_generator is
         i_mapIdxOld     : in natural range 0 to MAX_MAP_SIZE - 1;
         i_mapSize       : in unsigned(15 downto 0);
         i_nMapColumns   : in unsigned(7 downto 0);
-        o_inBufAddr     : out std_logic_vector(17 downto 0);
-        o_wgsBufAddr    : out std_logic_vector(8 downto 0);
+        o_inBufAddr     : out std_logic_vector(16 downto 0);
+        o_wgsBufAddr    : out std_logic_vector(10 downto 0);
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
         o_outBufAddr    : out std_logic_vector(8 downto 0)
     );
@@ -31,8 +31,8 @@ end addr_generator;
 architecture arch of addr_generator is
 
     signal s_offset         : integer range -16 to 16;
-    signal r_inBufAddr      : std_logic_vector(17 downto 0);
-    signal r_wgsBufAddr     : std_logic_vector(8 downto 0);
+    signal r_inBufAddr      : std_logic_vector(16 downto 0);
+    signal r_wgsBufAddr     : std_logic_vector(10 downto 0);
     signal r_psumBufAddr    : std_logic_vector(8 downto 0);
     signal r_outBufAddr     : std_logic_vector(8 downto 0);
 
@@ -57,13 +57,13 @@ begin
                                                 to_integer(i_inBaseAddr)
                                                 + i_mapIdx
                                                 + (i_channelIdx * to_integer(i_mapSize))
-                                                + s_offset, 18));
+                                                + s_offset, 17));
 
             r_wgsBufAddr <= std_logic_vector(to_unsigned(
                                                 to_integer(i_wgsBaseAddr)
                                                 + i_weightIdx 
                                                 + (i_channelIdx * KERNEL_SIZE)
-                                                , 9));
+                                                , 11));
 
             r_psumBufAddr <= std_logic_vector(to_unsigned(
                                                 to_integer(i_psumBaseAddr)

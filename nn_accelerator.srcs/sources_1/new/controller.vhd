@@ -19,23 +19,28 @@ entity controller is
         i_ctrlReg3      : in std_logic_vector(31 downto 0);
         o_rstCtrlReg    : out std_logic;
 
+        -- Instruction buffer
+        o_enInstr       : out std_logic;
+        o_instrPtr      : out std_logic_vector(8 downto 0);
+        i_instruction   : in std_logic_vector(63 downto 0);
+
         o_clearAccum    : out std_logic;
         o_loadPartSum   : out std_logic;
         o_enActivation  : out std_logic;
 
-        -- in buffer
+        -- Input buffer
         o_inBufEn       : out std_logic;
-        o_inBufAddr     : out std_logic_vector(17 downto 0);
+        o_inBufAddr     : out std_logic_vector(16 downto 0);
 
-        -- weights buffer
+        -- Weights buffer
         o_wgsBufEn      : out std_logic;
-        o_wgsBufAddr    : out std_logic_vector(8 downto 0);
+        o_wgsBufAddr    : out std_logic_vector(10 downto 0);
 
-        -- partial sums buffer
+        -- Partial sums buffer
         o_psumBufEn     : out std_logic;
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
 
-        -- out buffer
+        -- Output buffer
         o_outBufEn      : out std_logic;
         o_outBufWe      : out std_logic;
         o_outBufAddr    : out std_logic_vector(8 downto 0)
@@ -47,7 +52,6 @@ architecture arch of controller is
     type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP);
     signal state            : state_type := IDLE;
 
-    signal s_enInstrRom     : std_logic;
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
     signal r_currInstr      : std_logic_vector(63 downto 0);
     signal s_instr          : std_logic_vector(63 downto 0);
@@ -63,8 +67,8 @@ architecture arch of controller is
     signal r_firstBlock     : std_logic;
     signal r_lastBlock      : std_logic;
 
-    signal r_inBaseAddr     : unsigned(17 downto 0) := (others => '0');
-    signal r_wgsBaseAddr    : unsigned(8 downto 0) := (others => '0');
+    signal r_inBaseAddr     : unsigned(16 downto 0) := (others => '0');
+    signal r_wgsBaseAddr    : unsigned(10 downto 0) := (others => '0');
     signal r_psumBaseAddr   : unsigned(8 downto 0) := (others => '0');
     signal r_outBaseAddr    : unsigned(8 downto 0) := (others => '0');
 
@@ -77,24 +81,16 @@ architecture arch of controller is
     signal s_mapIdxOld      : natural range 0 to MAX_MAP_SIZE - 1;
     signal s_save           : std_logic;
 
-    component instruction_rom
-        port (
-            clka            : in std_logic;
-            ena             : in std_logic;
-            addra           : in std_logic_vector(8 downto 0);
-            douta           : out std_logic_vector(63 downto 0)
-        );
-    end component;
-
 begin
 
-    s_enInstrRom <= '1';
+    o_enInstr <= '1';
+    o_instrPtr <= std_logic_vector(r_instrPtr);
 
     process (clk)
         variable v_opcode : std_logic_vector(3 downto 0);
     begin
         if rising_edge(clk) then
-            r_currInstr <= s_instr;
+            r_currInstr <= i_instruction;
 
             case state is
             when IDLE =>
@@ -126,10 +122,10 @@ begin
 
                 when "0010" =>  -- Load base addresses
                     state <= FETCH_INSTR;
-                    r_inBaseAddr <= unsigned(r_currInstr(59 downto 42));
-                    r_wgsBaseAddr <= unsigned(r_currInstr(41 downto 33));
-                    r_psumBaseAddr <= unsigned(r_currInstr(32 downto 24));
-                    r_outBaseAddr <= unsigned(r_currInstr(23 downto 15));
+                    r_inBaseAddr <= unsigned(r_currInstr(59 downto 43));
+                    r_wgsBaseAddr <= unsigned(r_currInstr(42 downto 32));
+                    r_psumBaseAddr <= unsigned(r_currInstr(31 downto 23));
+                    r_outBaseAddr <= unsigned(r_currInstr(22 downto 14));
                 
                 when others =>
                     state <= STOP;
@@ -201,7 +197,7 @@ begin
     o_outBufEn <= '1' when state = COMPUTE
         else '0';
 
-    -- The CUs write to time to the first map position
+    -- The CUs write two time to the first map position
     -- the first while filling the pipeline
     -- the second is the correct result and overwrite the first
     o_outBufWe <= '1' when state = COMPUTE and s_save = '1'
@@ -241,14 +237,5 @@ begin
         o_psumBufAddr   => o_psumBufAddr,
         o_outBufAddr    => o_outBufAddr
     );
-
-    instr_rom : instruction_rom
-    port map (
-        clka            => clk,
-        ena             => s_enInstrRom,
-        addra           => std_logic_vector(r_instrPtr),
-        douta           => s_instr
-    );
-
 
 end arch;
