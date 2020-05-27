@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity convolution_engine is
     generic (
         DATA_WIDTH      : positive := 8;
-        NUMBER_CU       : positive := 64
+        NUMBER_CU       : positive := 128
     );
     port ( 
         clk             : in std_logic;
