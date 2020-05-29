@@ -80,7 +80,58 @@ entity nn_accelerator is
         m00_axi_wready  : in std_logic;
         m00_axi_bresp   : in std_logic_vector(1 downto 0);
         m00_axi_bvalid  : in std_logic;
-        m00_axi_bready  : out std_logic
+        m00_axi_bready  : out std_logic;
+
+        m01_axi_araddr  : out std_logic_vector(31 downto 0);
+        m01_axi_arvalid : out std_logic;
+        m01_axi_arready : in std_logic;
+        m01_axi_rdata   : in std_logic_vector(31 downto 0);
+        m01_axi_rresp   : in std_logic_vector(1 downto 0);
+        m01_axi_rvalid  : in std_logic;
+        m01_axi_rready  : out std_logic;
+        m01_axi_awaddr  : out std_logic_vector(31 downto 0);
+        m01_axi_awvalid : out std_logic;
+        m01_axi_awready : in std_logic;
+        m01_axi_wdata   : out std_logic_vector(31 downto 0);
+        m01_axi_wvalid  : out std_logic;
+        m01_axi_wready  : in std_logic;
+        m01_axi_bresp   : in std_logic_vector(1 downto 0);
+        m01_axi_bvalid  : in std_logic;
+        m01_axi_bready  : out std_logic;
+
+        m02_axi_araddr  : out std_logic_vector(31 downto 0);
+        m02_axi_arvalid : out std_logic;
+        m02_axi_arready : in std_logic;
+        m02_axi_rdata   : in std_logic_vector(31 downto 0);
+        m02_axi_rresp   : in std_logic_vector(1 downto 0);
+        m02_axi_rvalid  : in std_logic;
+        m02_axi_rready  : out std_logic;
+        m02_axi_awaddr  : out std_logic_vector(31 downto 0);
+        m02_axi_awvalid : out std_logic;
+        m02_axi_awready : in std_logic;
+        m02_axi_wdata   : out std_logic_vector(31 downto 0);
+        m02_axi_wvalid  : out std_logic;
+        m02_axi_wready  : in std_logic;
+        m02_axi_bresp   : in std_logic_vector(1 downto 0);
+        m02_axi_bvalid  : in std_logic;
+        m02_axi_bready  : out std_logic;
+
+        m03_axi_araddr  : out std_logic_vector(31 downto 0);
+        m03_axi_arvalid : out std_logic;
+        m03_axi_arready : in std_logic;
+        m03_axi_rdata   : in std_logic_vector(31 downto 0);
+        m03_axi_rresp   : in std_logic_vector(1 downto 0);
+        m03_axi_rvalid  : in std_logic;
+        m03_axi_rready  : out std_logic;
+        m03_axi_awaddr  : out std_logic_vector(31 downto 0);
+        m03_axi_awvalid : out std_logic;
+        m03_axi_awready : in std_logic;
+        m03_axi_wdata   : out std_logic_vector(31 downto 0);
+        m03_axi_wvalid  : out std_logic;
+        m03_axi_wready  : in std_logic;
+        m03_axi_bresp   : in std_logic_vector(1 downto 0);
+        m03_axi_bvalid  : in std_logic;
+        m03_axi_bready  : out std_logic
     );
 end nn_accelerator;
 
@@ -305,32 +356,87 @@ begin
         o_outBufData    => s_outBufWData
     );
 
-    dispatcher : entity work.cdma_dispatcher
+    mmu : entity work.mem_management_unit
     port map (
         clk             => clk,
         i_reset         => s_reset,
-        o_dmaDone       => s_dmaDone,
-        i_queueDataIn   => s_queueDataIn,
-        i_enqueueReq    => s_enqueuReq,
-        o_queueFull     => s_queueFull,
-        o_araddr        => m00_axi_araddr,
-        o_arvalid       => m00_axi_arvalid,
-        i_arready       => m00_axi_arready,
-        i_rdata         => m00_axi_rdata,
-        i_rresp         => m00_axi_rresp,
-        i_rvalid        => m00_axi_rvalid,
-        o_rready        => m00_axi_rready,
-        o_awaddr        => m00_axi_awaddr,
-        o_awvalid       => m00_axi_awvalid,
-        i_awready       => m00_axi_awready,
-        o_wdata         => m00_axi_wdata,
-        o_wvalid        => m00_axi_wvalid,
-        i_wready        => m00_axi_wready,
-        i_bresp         => m00_axi_bresp,
-        i_bvalid        => m00_axi_bvalid,
-        o_bready        => m00_axi_bready
-    );
 
+        i_dmaQueueData  => s_queueDataIn,
+        i_dmaEnqueue    => s_enqueuReq,
+        o_dmaDone       => s_dmaDone,
+
+        -- AXI4-lite master interface to CDMA IP
+        o_araddrInBuf   => m00_axi_araddr,
+        o_arvalidInBuf  => m00_axi_arvalid,
+        i_arreadyInBuf  => m00_axi_arready,
+        i_rdataInBuf    => m00_axi_rdata,
+        i_rrespInBuf    => m00_axi_rresp,
+        i_rvalidInBuf   => m00_axi_rvalid,
+        o_rreadyInBuf   => m00_axi_rready,
+        o_awaddrInBuf   => m00_axi_awaddr,
+        o_awvalidInBuf  => m00_axi_awvalid,
+        i_awreadyInBuf  => m00_axi_awready,
+        o_wdataInBuf    => m00_axi_wdata,
+        o_wvalidInBuf   => m00_axi_wvalid,
+        i_wreadyInBuf   => m00_axi_wready,
+        i_brespInBuf    => m00_axi_bresp,
+        i_bvalidInBuf   => m00_axi_bvalid,
+        o_breadyInBuf   => m00_axi_bready,
+
+        -- AXI4-lite master interface to CDMA IP
+        o_araddrWsBuf   => m01_axi_araddr,
+        o_arvalidWsBuf  => m01_axi_arvalid,
+        i_arreadyWsBuf  => m01_axi_arready,
+        i_rdataWsBuf    => m01_axi_rdata,
+        i_rrespWsBuf    => m01_axi_rresp,
+        i_rvalidWsBuf   => m01_axi_rvalid,
+        o_rreadyWsBuf   => m01_axi_rready,
+        o_awaddrWsBuf   => m01_axi_awaddr,
+        o_awvalidWsBuf  => m01_axi_awvalid,
+        i_awreadyWsBuf  => m01_axi_awready,
+        o_wdataWsBuf    => m01_axi_wdata,
+        o_wvalidWsBuf   => m01_axi_wvalid,
+        i_wreadyWsBuf   => m01_axi_wready,
+        i_brespWsBuf    => m01_axi_bresp,
+        i_bvalidWsBuf   => m01_axi_bvalid,
+        o_breadyWsBuf   => m01_axi_bready,
+
+        -- AXI4-lite master interface to CDMA IP
+        o_araddrPsBuf   => m02_axi_araddr,
+        o_arvalidPsBuf  => m02_axi_arvalid,
+        i_arreadyPsBuf  => m02_axi_arready,
+        i_rdataPsBuf    => m02_axi_rdata,
+        i_rrespPsBuf    => m02_axi_rresp,
+        i_rvalidPsBuf   => m02_axi_rvalid,
+        o_rreadyPsBuf   => m02_axi_rready,
+        o_awaddrPsBuf   => m02_axi_awaddr,
+        o_awvalidPsBuf  => m02_axi_awvalid,
+        i_awreadyPsBuf  => m02_axi_awready,
+        o_wdataPsBuf    => m02_axi_wdata,
+        o_wvalidPsBuf   => m02_axi_wvalid,
+        i_wreadyPsBuf   => m02_axi_wready,
+        i_brespPsBuf    => m02_axi_bresp,
+        i_bvalidPsBuf   => m02_axi_bvalid,
+        o_breadyPsBuf   => m02_axi_bready,
+
+        -- AXI4-lite master interface to CDMA IP
+        o_araddrOutBuf  => m03_axi_araddr,
+        o_arvalidOutBuf => m03_axi_arvalid,
+        i_arreadyOutBuf => m03_axi_arready,
+        i_rdataOutBuf   => m03_axi_rdata,
+        i_rrespOutBuf   => m03_axi_rresp,
+        i_rvalidOutBuf  => m03_axi_rvalid,
+        o_rreadyOutBuf  => m03_axi_rready,
+        o_awaddrOutBuf  => m03_axi_awaddr,
+        o_awvalidOutBuf => m03_axi_awvalid,
+        i_awreadyOutBuf => m03_axi_awready,
+        o_wdataOutBuf   => m03_axi_wdata,
+        o_wvalidOutBuf  => m03_axi_wvalid,
+        i_wreadyOutBuf  => m03_axi_wready,
+        i_brespOutBuf   => m03_axi_bresp,
+        i_bvalidOutBuf  => m03_axi_bvalid,
+        o_breadyOutBuf  => m03_axi_bready
+    );
 
     in_buffer : input_buffer
     port map (

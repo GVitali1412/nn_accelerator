@@ -5,6 +5,9 @@ library UNISIM;
 use UNISIM.VComponents.all;
 
 entity cdma_dispatcher is
+    generic (
+        SLOT_ID_BITS    : natural
+    );
     port (
         clk             : in std_logic;
         i_reset         : in std_logic;
@@ -88,19 +91,19 @@ begin
 
     s_dequeueReq <= '1' when state = DEQUEUE else '0';
 
-    o_araddr <= "10000000000000000000000000000100";  -- Status register has offset 0x04
+    o_araddr <= "00000000000000000000000000000100";  -- Status register has offset 0x04
     o_arvalid <= '1';  -- Always read the status register
     o_rready <= '1';  -- Always accept read data
     o_bready <= '1';  -- Always accept write responses
     o_awvalid <= r_awvalid;
     o_wvalid <= r_wvalid;
 
-    o_awaddr <= "10000000000000000000000000011000" when state = WRITE_SRC  -- Offset 0x18
+    o_awaddr <= "00000000000000000000000000011000" when state = WRITE_SRC  -- Offset 0x18
                     else
-                "10000000000000000000000000100000" when state = WRITE_DST  -- Offset 0x20
+                "00000000000000000000000000100000" when state = WRITE_DST  -- Offset 0x20
                     else
-                "10000000000000000000000000101000" when state = WRITE_BTT  -- Offset 0x28
-                    else "10000000000000000000000000000000";  -- Offset 0x04
+                "00000000000000000000000000101000" when state = WRITE_BTT  -- Offset 0x28
+                    else "00000000000000000000000000000000";  -- Offset 0x04
     
     o_wdata <= r_srcAddr when state = WRITE_SRC
                     else

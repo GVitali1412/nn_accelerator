@@ -54,7 +54,8 @@ end controller;
 
 architecture arch of controller is
 
-    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP, DMA);
+    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP, 
+                        WAIT_DMA);
     signal state            : state_type := IDLE;
 
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
@@ -132,8 +133,11 @@ begin
                     r_psumBaseAddr <= unsigned(r_currInstr(31 downto 23));
                     r_outBaseAddr <= unsigned(r_currInstr(22 downto 14));
                 
-                when "0011" =>  -- DMA transfer
-                    state <= DMA;
+                when "0011" =>  -- Enqueue a DMA transfer
+                    state <= FETCH_INSTR;
+
+                when "0100" =>  -- Wait until DMA transfers are completed
+                    state <= WAIT_DMA;
                 
                 when others =>
                     state <= STOP;
@@ -148,7 +152,7 @@ begin
             when STOP =>
                 state <= STOP;
             
-            when DMA =>
+            when WAIT_DMA =>
                 if i_dmaDone = '1' then
                     state <= FETCH_INSTR;
                 end if;
