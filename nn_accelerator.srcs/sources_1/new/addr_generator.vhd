@@ -11,6 +11,7 @@ entity addr_generator is
     );
     port (
         clk             : in std_logic;
+        i_stall         : in std_logic;
         i_inBaseAddr    : in unsigned(16 downto 0);
         i_wgsBaseAddr   : in unsigned(10 downto 0);
         i_psumBaseAddr  : in unsigned(8 downto 0);
@@ -53,25 +54,30 @@ begin
     process (clk)
     begin
         if rising_edge(clk) then
-            r_inBufAddr  <= std_logic_vector(to_unsigned(
-                                                to_integer(i_inBaseAddr)
-                                                + i_mapIdx
-                                                + (i_channelIdx * to_integer(i_mapSize))
-                                                + s_offset, 17));
+            if i_stall = '0' then
+                r_inBufAddr  <= std_logic_vector(
+                                    to_unsigned(
+                                        to_integer(i_inBaseAddr)
+                                        + i_mapIdx
+                                        + (i_channelIdx * to_integer(i_mapSize))
+                                        + s_offset, 17));
 
-            r_wgsBufAddr <= std_logic_vector(to_unsigned(
-                                                to_integer(i_wgsBaseAddr)
-                                                + i_weightIdx 
-                                                + (i_channelIdx * KERNEL_SIZE)
-                                                , 11));
+                r_wgsBufAddr <= std_logic_vector(
+                                    to_unsigned(
+                                        to_integer(i_wgsBaseAddr)
+                                        + i_weightIdx 
+                                        + (i_channelIdx * KERNEL_SIZE), 11));
 
-            r_psumBufAddr <= std_logic_vector(to_unsigned(
-                                                to_integer(i_psumBaseAddr)
-                                                + i_mapIdx, 9));
+                r_psumBufAddr <= std_logic_vector(
+                                    to_unsigned(
+                                        to_integer(i_psumBaseAddr)
+                                        + i_mapIdx, 9));
 
-            r_outBufAddr <= std_logic_vector(to_unsigned(
-                                                to_integer(i_outBaseAddr)
-                                                + i_mapIdxOld, 9));
+                r_outBufAddr <= std_logic_vector(
+                                    to_unsigned(
+                                        to_integer(i_outBaseAddr)
+                                        + i_mapIdxOld, 9));
+            end if;
         end if;
     end process;
     

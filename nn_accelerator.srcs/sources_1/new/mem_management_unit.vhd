@@ -9,6 +9,13 @@ entity mem_management_unit is
         clk             : in std_logic;
         i_reset         : in std_logic;
 
+        i_addrInBuf     : in std_logic_vector(16 downto 0);
+        i_addrWsBuf     : in std_logic_vector(10 downto 0);
+        i_addrPsBuf     : in std_logic_vector(8 downto 0);
+        i_addrOutBuf    : in std_logic_vector(8 downto 0);
+        i_addrEn        : in std_logic;
+        o_stall         : out std_logic;
+
         i_dmaQueueData  : in std_logic_vector(63 downto 0);
         i_dmaEnqueue    : in std_logic;
         o_dmaDone       : out std_logic;
@@ -104,6 +111,22 @@ architecture arch of mem_management_unit is
     signal s_queueFullPs    : std_logic;
     signal s_queueFullOut   : std_logic;
 
+    signal s_slotIdUpInBuf  : std_logic_vector(7 downto 0);
+    signal s_slotIdUpWsBuf  : std_logic_vector(8 downto 0);
+    signal s_slotIdUpPsBuf  : std_logic_vector(6 downto 0);
+
+    signal s_slotIdUpEnInBuf: std_logic;
+    signal s_slotIdUpEnWsBuf: std_logic;
+    signal s_slotIdUpEnPsBuf: std_logic;
+
+    signal s_slotValidInBuf : std_logic;
+    signal s_slotValidWsBuf : std_logic;
+    signal s_slotValidPsBuf : std_logic;
+
+    signal s_stallInBuf     : std_logic;
+    signal s_stallWsBuf     : std_logic;
+    signal s_stallPsBuf     : std_logic;
+
 begin
 
     o_dmaDone <= s_dmaDoneInBuf or s_dmaDoneWsBuf or s_dmaDonePsBuf 
@@ -124,11 +147,14 @@ begin
     s_enqueueOutBuf <= '1' when i_dmaEnqueue = '1'
                                 and i_dmaQueueData(1 downto 0) = "11"
                        else '0';
-    
+
+    o_stall <= s_stallInBuf or s_stallWsBuf or s_stallPsBuf;
+
 
     input_dispatcher : entity work.cdma_dispatcher
     generic map (
-        SLOT_ID_BITS    => 8
+        SLOT_ID_BITS    => 8,
+        OFFSET_BITS     => 9
     )
     port map (
         clk             => clk,
@@ -137,6 +163,10 @@ begin
         i_queueDataIn   => i_dmaQueueData,
         i_enqueueReq    => s_enqueueInBuf,
         o_queueFull     => s_queueFullIn,
+
+        o_slotIdUpdate  => s_slotIdUpInBuf,
+        o_slotIdEn      => s_slotIdUpEnInBuf,
+        o_slotValid     => s_slotValidInBuf,
 
         o_araddr        => o_araddrInBuf,
         o_arvalid       => o_arvalidInBuf,
@@ -156,9 +186,25 @@ begin
         o_bready        => o_breadyInBuf
     );
 
+    input_stall_gen : entity work.stall_generator
+    generic map (
+        SLOT_ID_BITS    => 8
+    )
+    port map (
+        clk             => clk,
+        o_stall         => s_stallInBuf,
+        i_slotId        => i_addrInBuf(16 downto 9),
+        i_slotIdEn      => i_addrEn,
+        i_slotIdUpdate  => s_slotIdUpInBuf,
+        i_slotIdUpEn    => s_slotIdUpEnInBuf,
+        i_slotValid     => s_slotValidInBuf
+    );
+
+
     weights_dispatcher : entity work.cdma_dispatcher
     generic map (
-        SLOT_ID_BITS    => 9
+        SLOT_ID_BITS    => 9,
+        OFFSET_BITS     => 2
     )
     port map (
         clk             => clk,
@@ -167,6 +213,10 @@ begin
         i_queueDataIn   => i_dmaQueueData,
         i_enqueueReq    => s_enqueueWsBuf,
         o_queueFull     => s_queueFullWs,
+
+        o_slotIdUpdate  => s_slotIdUpWsBuf,
+        o_slotIdEn      => s_slotIdUpEnWsBuf,
+        o_slotValid     => s_slotValidWsBuf,
 
         o_araddr        => o_araddrWsBuf,
         o_arvalid       => o_arvalidWsBuf,
@@ -186,9 +236,25 @@ begin
         o_bready        => o_breadyWsBuf
     );
 
+    weights_stall_gen : entity work.stall_generator
+    generic map (
+        SLOT_ID_BITS    => 9
+    )
+    port map (
+        clk             => clk,
+        o_stall         => s_stallWsBuf,
+        i_slotId        => i_addrWsBuf(10 downto 2),
+        i_slotIdEn      => i_addrEn,
+        i_slotIdUpdate  => s_slotIdUpWsBuf,
+        i_slotIdUpEn    => s_slotIdUpEnWsBuf,
+        i_slotValid     => s_slotValidWsBuf
+    );
+
+
     psum_dispatcher : entity work.cdma_dispatcher
     generic map (
-        SLOT_ID_BITS    => 7
+        SLOT_ID_BITS    => 7,
+        OFFSET_BITS     => 2
     )
     port map (
         clk             => clk,
@@ -197,6 +263,10 @@ begin
         i_queueDataIn   => i_dmaQueueData,
         i_enqueueReq    => s_enqueuePsBuf,
         o_queueFull     => s_queueFullPs,
+
+        o_slotIdUpdate  => s_slotIdUpPsBuf,
+        o_slotIdEn      => s_slotIdUpEnPsBuf,
+        o_slotValid     => s_slotValidPsBuf,
 
         o_araddr        => o_araddrPsBuf,
         o_arvalid       => o_arvalidPsBuf,
@@ -216,9 +286,25 @@ begin
         o_bready        => o_breadyPsBuf
     );
 
-    output_dispatcher : entity work.cdma_dispatcher
+    psum_stall_gen : entity work.stall_generator
     generic map (
         SLOT_ID_BITS    => 7
+    )
+    port map (
+        clk             => clk,
+        o_stall         => s_stallPsBuf,
+        i_slotId        => i_addrPsBuf(8 downto 2),
+        i_slotIdEn      => i_addrEn,
+        i_slotIdUpdate  => s_slotIdUpPsBuf,
+        i_slotIdUpEn    => s_slotIdUpEnPsBuf,
+        i_slotValid     => s_slotValidPsBuf
+    );
+
+
+    output_dispatcher : entity work.cdma_dispatcher
+    generic map (
+        SLOT_ID_BITS    => 7,
+        OFFSET_BITS     => 2
     )
     port map (
         clk             => clk,
@@ -227,6 +313,10 @@ begin
         i_queueDataIn   => i_dmaQueueData,
         i_enqueueReq    => s_enqueueOutBuf,
         o_queueFull     => s_queueFullOut,
+
+        o_slotIdUpdate  => open,
+        o_slotIdEn      => open,
+        o_slotValid     => open,
 
         o_araddr        => o_araddrOutBuf,
         o_arvalid       => o_arvalidOutBuf,

@@ -11,6 +11,8 @@ entity controller is
     );
     port (
         clk             : in std_logic;
+        i_stall         : in std_logic;
+        o_addrEn        : out std_logic;
 
         -- AXI control registers
         i_ctrlReg0      : in std_logic_vector(31 downto 0);
@@ -54,8 +56,8 @@ end controller;
 
 architecture arch of controller is
 
-    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, COMPUTE, STOP, 
-                        WAIT_DMA);
+    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, PIPE_FILL, COMPUTE, 
+                        STOP, WAIT_DMA);
     signal state            : state_type := IDLE;
 
     signal r_instrPtr       : unsigned(8 downto 0) := (others => '0');
@@ -117,7 +119,7 @@ begin
                     r_instrPtr <= (others => '0');
 
                 when "0001" =>  -- Start convolution
-                    state <= COMPUTE;
+                    state <= PIPE_FILL;
                     r_lastChanIdx <= unsigned(r_currInstr(59 downto 50));
                     r_firstBlock <= r_currInstr(49);
                     r_lastBlock <= r_currInstr(48);
@@ -143,6 +145,9 @@ begin
                     state <= STOP;
 
                 end case;
+            
+            when PIPE_FILL =>
+                state <= COMPUTE;
                 
             when COMPUTE =>
                 if s_done = '1' then
@@ -201,6 +206,8 @@ begin
     -- activation function, otherwise save the partial sums
     o_enActivation <= '1' when r_lastBlock = '1'
                       else '0';
+    
+    o_addrEn <= '1' when state = COMPUTE else '0';
 
     o_inBufEn <= '1' when state = COMPUTE
                  else '0';
@@ -231,6 +238,7 @@ begin
     port map (
         clk             => clk,
         i_start         => s_start,
+        i_stall         => i_stall,
         i_lastChanIdx   => r_lastChanIdx,
         i_nMapRows      => r_nMapRows,
         i_nMapColumns   => r_nMapColumns,
@@ -245,6 +253,7 @@ begin
     addresses_generator : entity work.addr_generator
     port map (
         clk             => clk,
+        i_stall         => i_stall,
         i_inBaseAddr    => r_inBaseAddr,
         i_wgsBaseAddr   => r_wgsBaseAddr,
         i_psumBaseAddr  => r_psumBaseAddr,

@@ -7,6 +7,7 @@ entity compute_unit is
     generic (DATA_WIDTH : positive := 8);
     port (
         clk             : in std_logic;
+        i_stall         : in std_logic;
         i_clearAccum    : in std_logic;
         i_loadPartSum   : in std_logic;
         i_enActivation  : in std_logic;
@@ -35,23 +36,27 @@ begin
     process (clk)
     begin
         if rising_edge(clk) then
-            r_value <= i_value;
-            r_weight <= i_weight;
-            r_partialSumIn <= shift_left(resize(i_partialSumIn, 2*DATA_WIDTH), 3);
+            if i_stall = '0' then
+                r_value <= i_value;
+                r_weight <= i_weight;
+                r_partialSumIn <= shift_left(resize(i_partialSumIn, 2*DATA_WIDTH), 3);
+            end if;
         end if;
     end process;
 
     process (clk)
     begin
         if rising_edge(clk) then
-            if i_clearAccum = '1' then
-                -- Clear the accumulator
-                r_accumulator <= r_value * r_weight;
-            elsif i_loadPartSum = '1' then
-                -- Add to the loaded partial sum
-                r_accumulator <= r_partialSumIn + (r_value * r_weight);
-            else
-                r_accumulator <= r_accumulator + (r_value * r_weight);
+            if i_stall = '0' then
+                if i_clearAccum = '1' then
+                    -- Clear the accumulator
+                    r_accumulator <= r_value * r_weight;
+                elsif i_loadPartSum = '1' then
+                    -- Add to the loaded partial sum
+                    r_accumulator <= r_partialSumIn + (r_value * r_weight);
+                else
+                    r_accumulator <= r_accumulator + (r_value * r_weight);
+                end if;
             end if;
         end if;
     end process;

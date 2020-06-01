@@ -138,6 +138,9 @@ end nn_accelerator;
 architecture arch of nn_accelerator is
 
     signal s_reset          : std_logic;
+
+    signal s_stall          : std_logic;
+    signal s_addrEn         : std_logic;
     
     signal s_ctrlReg0       : std_logic_vector(31 downto 0);
     signal s_ctrlReg1       : std_logic_vector(31 downto 0);
@@ -318,6 +321,8 @@ begin
     convolution_controller : entity work.controller
     port map (
         clk             => clk,
+        i_stall         => s_stall,
+        o_addrEn        => s_addrEn,
         i_ctrlReg0      => s_ctrlReg0,
         i_ctrlReg1      => s_ctrlReg1,
         i_ctrlReg2      => s_ctrlReg2,
@@ -347,6 +352,7 @@ begin
     conv_engine : entity work.convolution_engine
     port map (
         clk             => clk,
+        i_stall         => s_stall,
         i_clearAccum    => s_clearAccum,
         i_loadPartSum   => s_loadPartSum,
         i_enActivation  => s_enActivation,
@@ -360,6 +366,13 @@ begin
     port map (
         clk             => clk,
         i_reset         => s_reset,
+
+        i_addrInBuf     => s_inBufRAddr,
+        i_addrWsBuf     => s_wsBufRAddr,
+        i_addrPsBuf     => s_psumBufRAddr,
+        i_addrOutBuf    => s_outBufWAddr,
+        i_addrEn        => s_addrEn,
+        o_stall         => s_stall,
 
         i_dmaQueueData  => s_queueDataIn,
         i_dmaEnqueue    => s_enqueuReq,

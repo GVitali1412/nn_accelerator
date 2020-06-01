@@ -6,7 +6,8 @@ use UNISIM.VComponents.all;
 
 entity cdma_dispatcher is
     generic (
-        SLOT_ID_BITS    : natural
+        SLOT_ID_BITS    : natural;
+        OFFSET_BITS     : natural
     );
     port (
         clk             : in std_logic;
@@ -17,6 +18,11 @@ entity cdma_dispatcher is
         i_queueDataIn   : in std_logic_vector(63 downto 0);
         i_enqueueReq    : in std_logic;
         o_queueFull     : out std_logic;
+
+        -- Slot updates for the stall generator
+        o_slotIdUpdate  : out std_logic_vector(SLOT_ID_BITS-1 downto 0);
+        o_slotIdEn      : out std_logic;
+        o_slotValid     : out std_logic;
 
         -- AXI4-lite master interface to CDMA IP
         -- Read channels
@@ -116,6 +122,12 @@ begin
     
     o_dmaDone <= r_done;
 
+
+    o_slotIdUpdate <= r_dstAddr(SLOT_ID_BITS+8 downto 9);
+    o_slotIdEn <= '1' when state = DEQUEUE or state = RESET else '0';
+    o_slotValid <= '1' when state = RESET else '0';
+
+
     process (clk)
     begin
         if rising_edge(clk) then
@@ -124,10 +136,16 @@ begin
                 r_done <= '0';
                 if s_queueEmpty = '0' and (i_rvalid and i_rdata(1) and not i_rdata(12)) = '1' then
                     state <= DEQUEUE;
-                    r_srcAddr(31 downto 12) <= s_queueDataOut(59 downto 40);
-                    r_srcAddr(11 downto 0) <= (others => '0');
-                    r_dstAddr(31 downto 12) <= s_queueDataOut(39 downto 20);
-                    r_dstAddr(11 downto 0) <= (others => '0');
+                    r_srcAddr(31 downto 24) <= s_queueDataOut(59 downto 52);
+                    r_srcAddr(23 downto 21) <= (others => '0');
+                    r_srcAddr(20 downto 9) <= s_queueDataOut(51 downto 40);
+                    r_srcAddr(8 downto 0) <= (others => '0');
+
+                    r_dstAddr(31 downto 24) <= s_queueDataOut(39 downto 32);
+                    r_dstAddr(23 downto 21) <= (others => '0');
+                    r_dstAddr(20 downto 9) <= s_queueDataOut(31 downto 20);
+                    r_dstAddr(8 downto 0) <= (others => '0');
+
                     r_btt(17 downto 0) <= s_queueDataOut(19 downto 2);
                     r_btt(31 downto 18) <= (others => '0');
                 end if;

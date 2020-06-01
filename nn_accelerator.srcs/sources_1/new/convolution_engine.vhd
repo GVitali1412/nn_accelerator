@@ -10,6 +10,7 @@ entity convolution_engine is
     );
     port ( 
         clk             : in std_logic;
+        i_stall         : in std_logic;
         i_clearAccum    : in std_logic;
         i_loadPartSum   : in std_logic;
         i_enActivation  : in std_logic;
@@ -28,6 +29,7 @@ begin
         cu : entity work.compute_unit
         port map (
             clk             => clk,
+            i_stall         => i_stall,
             i_clearAccum    => i_clearAccum,
             i_loadPartSum   => i_loadPartSum,
             i_enActivation  => i_enActivation,
