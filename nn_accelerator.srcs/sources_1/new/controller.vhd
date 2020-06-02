@@ -56,7 +56,7 @@ end controller;
 
 architecture arch of controller is
 
-    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, PIPE_FILL, COMPUTE, 
+    type state_type is (IDLE, FETCH_INSTR, DECODE_INSTR, PIPE_FILL1, PIPE_FILL2, COMPUTE, 
                         STOP, WAIT_DMA);
     signal state            : state_type := IDLE;
 
@@ -119,7 +119,7 @@ begin
                     r_instrPtr <= (others => '0');
 
                 when "0001" =>  -- Start convolution
-                    state <= PIPE_FILL;
+                    state <= PIPE_FILL1;
                     r_lastChanIdx <= unsigned(r_currInstr(59 downto 50));
                     r_firstBlock <= r_currInstr(49);
                     r_lastBlock <= r_currInstr(48);
@@ -146,7 +146,10 @@ begin
 
                 end case;
             
-            when PIPE_FILL =>
+            when PIPE_FILL1 =>
+                state <= PIPE_FILL2;
+            
+            when PIPE_FILL2 =>
                 state <= COMPUTE;
                 
             when COMPUTE =>

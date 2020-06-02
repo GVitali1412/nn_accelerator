@@ -31,59 +31,105 @@ end addr_generator;
 
 architecture arch of addr_generator is
 
-    signal s_offset         : integer range -16 to 16;
+    signal r_offset         : integer range -16 to 16;
+
+    signal r_inBufAddrPipeA : unsigned(16 downto 0);
+    signal r_inBufAddrPipeB : unsigned(16 downto 0);
+    signal r_wsBufAddrPipeA : unsigned(10 downto 0);
+    signal r_wsBufAddrPipeB : unsigned(10 downto 0);
+
+    signal r_psBufAddrPipe  : std_logic_vector(8 downto 0);
+    signal r_outBufAddrPipe : std_logic_vector(8 downto 0);
+
     signal r_inBufAddr      : std_logic_vector(16 downto 0);
-    signal r_wgsBufAddr     : std_logic_vector(10 downto 0);
-    signal r_psumBufAddr    : std_logic_vector(8 downto 0);
+    signal r_wsBufAddr      : std_logic_vector(10 downto 0);
+    signal r_psBufAddr      : std_logic_vector(8 downto 0);
     signal r_outBufAddr     : std_logic_vector(8 downto 0);
 
 begin
-
-    with i_weightIdx select
-        s_offset <= -to_integer(i_nMapColumns+1) when 0,
-                    -to_integer(i_nMapColumns) when 1,
-                    -to_integer(i_nMapColumns-1) when 2,
-                    -1  when 3,
-                     0  when 4,
-                     1  when 5,
-                     to_integer(i_nMapColumns-1) when 6,
-                     to_integer(i_nMapColumns) when 7,
-                     to_integer(i_nMapColumns+1) when 8,
-                     0  when others;
 
     process (clk)
     begin
         if rising_edge(clk) then
             if i_stall = '0' then
-                r_inBufAddr  <= std_logic_vector(
-                                    to_unsigned(
+                with i_weightIdx select
+                    r_offset <= -to_integer(i_nMapColumns+1) when 0,
+                                -to_integer(i_nMapColumns) when 1,
+                                -to_integer(i_nMapColumns-1) when 2,
+                                -1  when 3,
+                                0  when 4,
+                                1  when 5,
+                                to_integer(i_nMapColumns-1) when 6,
+                                to_integer(i_nMapColumns) when 7,
+                                to_integer(i_nMapColumns+1) when 8,
+                                0  when others;
+            end if;
+        end if;
+    end process;
+
+    -- Input address
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            if i_stall = '0' then
+                r_inBufAddrPipeA <= to_unsigned((i_channelIdx * to_integer(i_mapSize)), 17);
+                
+                r_inBufAddrPipeB <= to_unsigned(
                                         to_integer(i_inBaseAddr)
-                                        + i_mapIdx
-                                        + (i_channelIdx * to_integer(i_mapSize))
-                                        + s_offset, 17));
+                                        + i_mapIdx, 17);
 
-                r_wgsBufAddr <= std_logic_vector(
-                                    to_unsigned(
-                                        to_integer(i_wgsBaseAddr)
-                                        + i_weightIdx 
-                                        + (i_channelIdx * KERNEL_SIZE), 11));
+                r_inBufAddr <= std_logic_vector(r_inBufAddrPipeA + r_inBufAddrPipeB + r_offset);
+            end if;
+        end if;
+    end process;
 
-                r_psumBufAddr <= std_logic_vector(
-                                    to_unsigned(
-                                        to_integer(i_psumBaseAddr)
-                                        + i_mapIdx, 9));
+    -- Weights address
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            if i_stall = '0' then
+                r_wsBufAddrPipeA <= to_unsigned(i_channelIdx * KERNEL_SIZE, 11);
 
-                r_outBufAddr <= std_logic_vector(
-                                    to_unsigned(
-                                        to_integer(i_outBaseAddr)
-                                        + i_mapIdxOld, 9));
+                r_wsBufAddrPipeB <= i_wgsBaseAddr + to_unsigned(i_weightIdx, 11); 
+                
+                r_wsBufAddr <= std_logic_vector(r_wsBufAddrPipeA + r_wsBufAddrPipeB);
+            end if;
+        end if;
+    end process;
+
+    -- Psum address
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            if i_stall = '0' then
+                r_psBufAddrPipe <= std_logic_vector(
+                                        to_unsigned(
+                                            to_integer(i_psumBaseAddr)
+                                            + i_mapIdx, 9));
+                
+                r_psBufAddr <= r_psBufAddrPipe;
+            end if;
+        end if;
+    end process;
+
+    -- Output address
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            if i_stall = '0' then
+                r_outBufAddrPipe <= std_logic_vector(
+                                        to_unsigned(
+                                            to_integer(i_outBaseAddr)
+                                            + i_mapIdxOld, 9));
+                
+                r_outBufAddr <= r_outBufAddrPipe;
             end if;
         end if;
     end process;
     
     o_inBufAddr  <= r_inBufAddr;
-    o_wgsBufAddr <= r_wgsBufAddr;
-    o_psumBufAddr <= r_psumBufAddr;
+    o_wgsBufAddr <= r_wsBufAddr;
+    o_psumBufAddr <= r_psBufAddr;
     o_outBufAddr <= r_outBufAddr;
 
 end arch;

@@ -41,8 +41,8 @@ architecture arch of counters is
 
     signal r_done           : std_logic;
 
-    -- Shift register to assert the o_save with a delay of 4 clock cycles
-    signal r_shiftSave      : std_logic_vector(3 downto 0);
+    -- Shift register to assert the o_save with a delay of 5 clock cycles
+    signal r_shiftSave      : std_logic_vector(4 downto 0);
 
 begin
 
@@ -50,10 +50,10 @@ begin
     o_channelIdx <= r_channelIdx;
     o_mapIdx <= r_mapIdx;
     o_mapIdxOld <= r_mapIdxOld;
-    o_save <= r_shiftSave(3);
+    o_save <= r_shiftSave(4);
 
     -- Assert the done signal with the last save 
-    o_done <= r_done and r_shiftSave(3);
+    o_done <= r_done and r_shiftSave(4);
 
     process (clk)
         variable v_saveFlag : std_logic := '0';
@@ -71,7 +71,7 @@ begin
                     r_mapIdx <= 0;
                     r_mapIdxOld <= 0;
                     r_done <= '0';
-                    r_shiftSave <= "0001";
+                    r_shiftSave <= "00001";
 
                 else
                     case r_mapPos is
@@ -278,7 +278,7 @@ begin
                     end case;
 
                     -- Update the 'save' shift register
-                    r_shiftSave <= r_shiftSave(2 downto 0) & v_saveFlag;
+                    r_shiftSave <= r_shiftSave(3 downto 0) & v_saveFlag;
 
                 end if;
             end if;
