@@ -23,13 +23,15 @@ end convolution_engine;
 
 architecture arch of convolution_engine is
 
+    signal r_stallDelayed   : std_logic;
+
 begin
 
     convolution_units : for i in 0 to NUMBER_CU-1 generate
         cu : entity work.compute_unit
         port map (
             clk             => clk,
-            i_stall         => i_stall,
+            i_stall         => r_stallDelayed,
             i_clearAccum    => i_clearAccum,
             i_loadPartSum   => i_loadPartSum,
             i_enActivation  => i_enActivation,
@@ -46,5 +48,14 @@ begin
     extra_output : if NUMBER_CU*DATA_WIDTH < 1024 generate
         o_outBufData(1023 downto NUMBER_CU*DATA_WIDTH) <= (others => '0');
     end generate;
+
+    -- The stall signal for the CUs must be delayed by one clock
+    -- (to account for the latency of the bram buffers)
+    process (clk)
+    begin
+        if rising_edge(clk) then
+            r_stallDelayed <= i_stall;
+        end if;
+    end process;
 
 end arch;
