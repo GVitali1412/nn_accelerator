@@ -52,17 +52,18 @@ begin
     begin
         if rising_edge(clk) then
             if i_stall = '0' then
-                with i_weightIdx select
-                    r_offset <= -to_integer(i_nMapColumns+1) when 0,
-                                -to_integer(i_nMapColumns) when 1,
-                                -to_integer(i_nMapColumns-1) when 2,
-                                -1  when 3,
-                                0  when 4,
-                                1  when 5,
-                                to_integer(i_nMapColumns-1) when 6,
-                                to_integer(i_nMapColumns) when 7,
-                                to_integer(i_nMapColumns+1) when 8,
-                                0  when others;
+                case i_weightIdx is
+                    when 0 => r_offset <= -to_integer(i_nMapColumns+1);
+                    when 1 => r_offset <= -to_integer(i_nMapColumns);
+                    when 2 => r_offset <= -to_integer(i_nMapColumns-1);
+                    when 3 => r_offset <= -1;
+                    when 4 => r_offset <= 0;
+                    when 5 => r_offset <= 1;
+                    when 6 => r_offset <= to_integer(i_nMapColumns-1);
+                    when 7 => r_offset <= to_integer(i_nMapColumns);
+                    when 8 => r_offset <= to_integer(i_nMapColumns+1);
+                when others => r_offset <= 0;
+                end case;
             end if;
         end if;
     end process;
