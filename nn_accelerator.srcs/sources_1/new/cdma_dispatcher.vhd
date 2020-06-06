@@ -20,9 +20,10 @@ entity cdma_dispatcher is
         o_queueFull     : out std_logic;
 
         -- Slot updates for the stall generator
-        o_slotIdUpdate  : out std_logic_vector(SLOT_ID_BITS-1 downto 0);
-        o_slotIdEn      : out std_logic;
-        o_slotValid     : out std_logic;
+        o_slotIdValid   : out std_logic_vector(SLOT_ID_BITS-1 downto 0);
+        o_slotValidEn   : out std_logic;
+        o_slotIdInvalid : out std_logic_vector(SLOT_ID_BITS-1 downto 0);
+        o_slotInvalidEn : out std_logic;
 
         -- AXI4-lite master interface to CDMA IP
         -- Read channels
@@ -123,9 +124,11 @@ begin
     o_dmaDone <= r_done;
 
 
-    o_slotIdUpdate <= r_dstAddr(SLOT_ID_BITS+8 downto 9);
-    o_slotIdEn <= '1' when state = DEQUEUE or state = RESET else '0';
-    o_slotValid <= '1' when state = RESET else '0';
+    o_slotIdValid <= r_dstAddr(SLOT_ID_BITS+8 downto 9);
+    o_slotValidEn <= '1' when state = RESET else '0';
+
+    o_slotIdInvalid <= i_queueDataIn(SLOT_ID_BITS+19 downto 20);
+    o_slotInvalidEn <= i_enqueueReq;
 
 
     process (clk)

@@ -111,17 +111,20 @@ architecture arch of mem_management_unit is
     signal s_queueFullPs    : std_logic;
     signal s_queueFullOut   : std_logic;
 
-    signal s_slotIdUpInBuf  : std_logic_vector(7 downto 0);
-    signal s_slotIdUpWsBuf  : std_logic_vector(8 downto 0);
-    signal s_slotIdUpPsBuf  : std_logic_vector(6 downto 0);
+    signal s_slotIdValidInBuf : std_logic_vector(7 downto 0);
+    signal s_slotValidEnInBuf : std_logic;
+    signal s_slotIdInvalidInBuf : std_logic_vector(7 downto 0);
+    signal s_slotInvalidEnInBuf : std_logic;
 
-    signal s_slotIdUpEnInBuf: std_logic;
-    signal s_slotIdUpEnWsBuf: std_logic;
-    signal s_slotIdUpEnPsBuf: std_logic;
+    signal s_slotIdValidWsBuf : std_logic_vector(8 downto 0);
+    signal s_slotValidEnWsBuf : std_logic;
+    signal s_slotIdInvalidWsBuf : std_logic_vector(8 downto 0);
+    signal s_slotInvalidEnWsBuf : std_logic;
 
-    signal s_slotValidInBuf : std_logic;
-    signal s_slotValidWsBuf : std_logic;
-    signal s_slotValidPsBuf : std_logic;
+    signal s_slotIdValidPsBuf : std_logic_vector(6 downto 0);
+    signal s_slotValidEnPsBuf : std_logic;
+    signal s_slotIdInvalidPsBuf : std_logic_vector(6 downto 0);
+    signal s_slotInvalidEnPsBuf : std_logic;
 
     signal s_stallInBuf     : std_logic;
     signal s_stallWsBuf     : std_logic;
@@ -164,9 +167,10 @@ begin
         i_enqueueReq    => s_enqueueInBuf,
         o_queueFull     => s_queueFullIn,
 
-        o_slotIdUpdate  => s_slotIdUpInBuf,
-        o_slotIdEn      => s_slotIdUpEnInBuf,
-        o_slotValid     => s_slotValidInBuf,
+        o_slotIdValid   => s_slotIdValidInBuf,
+        o_slotValidEn   => s_slotValidEnInBuf,
+        o_slotIdInvalid => s_slotIdInvalidInBuf,
+        o_slotInvalidEn => s_slotInvalidEnInBuf,
 
         o_araddr        => o_araddrInBuf,
         o_arvalid       => o_arvalidInBuf,
@@ -195,9 +199,10 @@ begin
         o_stall         => s_stallInBuf,
         i_slotId        => i_addrInBuf(16 downto 9),
         i_slotIdEn      => i_addrEn,
-        i_slotIdUpdate  => s_slotIdUpInBuf,
-        i_slotIdUpEn    => s_slotIdUpEnInBuf,
-        i_slotValid     => s_slotValidInBuf
+        i_slotIdValid   => s_slotIdValidInBuf,
+        i_slotValidEn   => s_slotValidEnInBuf,
+        i_slotIdInvalid => s_slotIdInvalidInBuf,
+        i_slotInvalidEn => s_slotInvalidEnInBuf
     );
 
 
@@ -214,9 +219,10 @@ begin
         i_enqueueReq    => s_enqueueWsBuf,
         o_queueFull     => s_queueFullWs,
 
-        o_slotIdUpdate  => s_slotIdUpWsBuf,
-        o_slotIdEn      => s_slotIdUpEnWsBuf,
-        o_slotValid     => s_slotValidWsBuf,
+        o_slotIdValid   => s_slotIdValidWsBuf,
+        o_slotValidEn   => s_slotValidEnWsBuf,
+        o_slotIdInvalid => s_slotIdInvalidWsBuf,
+        o_slotInvalidEn => s_slotInvalidEnWsBuf,
 
         o_araddr        => o_araddrWsBuf,
         o_arvalid       => o_arvalidWsBuf,
@@ -245,9 +251,10 @@ begin
         o_stall         => s_stallWsBuf,
         i_slotId        => i_addrWsBuf(10 downto 2),
         i_slotIdEn      => i_addrEn,
-        i_slotIdUpdate  => s_slotIdUpWsBuf,
-        i_slotIdUpEn    => s_slotIdUpEnWsBuf,
-        i_slotValid     => s_slotValidWsBuf
+        i_slotIdValid   => s_slotIdValidWsBuf,
+        i_slotValidEn   => s_slotValidEnWsBuf,
+        i_slotIdInvalid => s_slotIdInvalidWsBuf,
+        i_slotInvalidEn => s_slotInvalidEnWsBuf
     );
 
 
@@ -264,9 +271,10 @@ begin
         i_enqueueReq    => s_enqueuePsBuf,
         o_queueFull     => s_queueFullPs,
 
-        o_slotIdUpdate  => s_slotIdUpPsBuf,
-        o_slotIdEn      => s_slotIdUpEnPsBuf,
-        o_slotValid     => s_slotValidPsBuf,
+        o_slotIdValid   => s_slotIdValidPsBuf,
+        o_slotValidEn   => s_slotValidEnPsBuf,
+        o_slotIdInvalid => s_slotIdInvalidPsBuf,
+        o_slotInvalidEn => s_slotInvalidEnPsBuf,
 
         o_araddr        => o_araddrPsBuf,
         o_arvalid       => o_arvalidPsBuf,
@@ -295,9 +303,10 @@ begin
         o_stall         => s_stallPsBuf,
         i_slotId        => i_addrPsBuf(8 downto 2),
         i_slotIdEn      => i_addrEn,
-        i_slotIdUpdate  => s_slotIdUpPsBuf,
-        i_slotIdUpEn    => s_slotIdUpEnPsBuf,
-        i_slotValid     => s_slotValidPsBuf
+        i_slotIdValid   => s_slotIdValidPsBuf,
+        i_slotValidEn   => s_slotValidEnPsBuf,
+        i_slotIdInvalid => s_slotIdInvalidPsBuf,
+        i_slotInvalidEn => s_slotInvalidEnPsBuf
     );
 
 
@@ -314,9 +323,10 @@ begin
         i_enqueueReq    => s_enqueueOutBuf,
         o_queueFull     => s_queueFullOut,
 
-        o_slotIdUpdate  => open,
-        o_slotIdEn      => open,
-        o_slotValid     => open,
+        o_slotIdValid   => open,
+        o_slotValidEn   => open,
+        o_slotIdInvalid => open,
+        o_slotInvalidEn => open,
 
         o_araddr        => o_araddrOutBuf,
         o_arvalid       => o_arvalidOutBuf,
