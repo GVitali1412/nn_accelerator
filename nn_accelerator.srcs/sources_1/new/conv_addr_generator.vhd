@@ -3,7 +3,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 
-entity addr_generator is
+entity conv_addr_generator is
     generic (
         KERNEL_SIZE     : positive := 9;
         MAX_N_CHANNELS  : positive := 1024;
@@ -27,9 +27,9 @@ entity addr_generator is
         o_psumBufAddr   : out std_logic_vector(8 downto 0);
         o_outBufAddr    : out std_logic_vector(8 downto 0)
     );
-end addr_generator;
+end conv_addr_generator;
 
-architecture arch of addr_generator is
+architecture arch of conv_addr_generator is
 
     signal r_offset         : integer range -16 to 16;
 

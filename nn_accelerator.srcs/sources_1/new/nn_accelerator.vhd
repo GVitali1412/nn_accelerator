@@ -318,7 +318,7 @@ begin
         axi_rready      => s00_axi_rready
     );
 
-    convolution_controller : entity work.controller
+    controller : entity work.controller
     port map (
         clk             => clk,
         i_stall         => s_stall,
@@ -336,10 +336,10 @@ begin
         o_enActivation  => s_enActivation,
         o_inBufEn       => s_inBufREn,
         o_inBufAddr     => s_inBufRAddr,
-        o_wgsBufEn      => s_wsBufREn,
-        o_wgsBufAddr    => s_wsBufRAddr,
-        o_psumBufEn     => s_psumBufREn,
-        o_psumBufAddr   => s_psumBufRAddr,
+        o_wsBufEn       => s_wsBufREn,
+        o_wsBufAddr     => s_wsBufRAddr,
+        o_psBufEn       => s_psumBufREn,
+        o_psBufAddr     => s_psumBufRAddr,
         o_outBufEn      => s_outBufWEn,
         o_outBufWe      => s_outBufWe(0),
         o_outBufAddr    => s_outBufWAddr,

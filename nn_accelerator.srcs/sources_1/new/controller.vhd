@@ -35,12 +35,12 @@ entity controller is
         o_inBufAddr     : out std_logic_vector(16 downto 0);
 
         -- Weights buffer
-        o_wgsBufEn      : out std_logic;
-        o_wgsBufAddr    : out std_logic_vector(10 downto 0);
+        o_wsBufEn       : out std_logic;
+        o_wsBufAddr     : out std_logic_vector(10 downto 0);
 
         -- Partial sums buffer
-        o_psumBufEn     : out std_logic;
-        o_psumBufAddr   : out std_logic_vector(8 downto 0);
+        o_psBufEn       : out std_logic;
+        o_psBufAddr     : out std_logic_vector(8 downto 0);
 
         -- Output buffer
         o_outBufEn      : out std_logic;
@@ -64,30 +64,35 @@ architecture arch of controller is
     signal r_currInstr      : std_logic_vector(63 downto 0);
     signal s_instr          : std_logic_vector(63 downto 0);
 
-    -- Register containing the number of (input) channels minus 1 for the 
-    -- current computation block = index of the last channel
-    signal r_lastChanIdx    : unsigned(9 downto 0);
+    type mode_type is (CONV, FC, POOL);
+    signal r_computeMode    : mode_type;
 
-    signal r_nMapRows       : unsigned(7 downto 0);
-    signal r_nMapColumns    : unsigned(7 downto 0);
-    signal r_mapSize        : unsigned(15 downto 0);
+    signal r_computeConfig  : std_logic_vector(59 downto 0);
 
-    signal r_firstBlock     : std_logic;
-    signal r_lastBlock      : std_logic;
+    signal s_firstBlock     : std_logic;
+    signal s_lastBlock      : std_logic;
 
     signal r_inBaseAddr     : unsigned(16 downto 0) := (others => '0');
-    signal r_wgsBaseAddr    : unsigned(10 downto 0) := (others => '0');
-    signal r_psumBaseAddr   : unsigned(8 downto 0) := (others => '0');
+    signal r_wsBaseAddr     : unsigned(10 downto 0) := (others => '0');
+    signal r_psBaseAddr     : unsigned(8 downto 0) := (others => '0');
     signal r_outBaseAddr    : unsigned(8 downto 0) := (others => '0');
 
     signal s_start          : std_logic;
-    signal s_done           : std_logic;
 
-    signal s_weightIdx      : natural range 0 to KERNEL_SIZE - 1;
-    signal s_channelIdx     : natural range 0 to MAX_N_CHANNELS - 1;
-    signal s_mapIdx         : natural range 0 to MAX_MAP_SIZE - 1;
-    signal s_mapIdxOld      : natural range 0 to MAX_MAP_SIZE - 1;
-    signal s_save           : std_logic;
+    signal s_inBufAddrConv  : std_logic_vector(16 downto 0);
+    signal s_wsBufAddrConv  : std_logic_vector(10 downto 0);
+    signal s_psBufAddrConv  : std_logic_vector(8 downto 0);
+    signal s_outBufAddrConv : std_logic_vector(8 downto 0);
+    signal s_saveConv       : std_logic;
+    signal s_doneConv       : std_logic;
+
+    signal s_inBufAddrFC    : std_logic_vector(16 downto 0);
+    signal s_wsBufAddrFC    : std_logic_vector(10 downto 0);
+    signal s_psBufAddrFC    : std_logic_vector(8 downto 0);
+    signal s_outBufAddrFC   : std_logic_vector(8 downto 0);
+    signal s_saveFC         : std_logic;
+    signal s_doneFC         : std_logic;
+
 
 begin
 
@@ -120,19 +125,14 @@ begin
 
                 when "0001" =>  -- Start convolution
                     state <= PIPE_FILL1;
-                    r_lastChanIdx <= unsigned(r_currInstr(59 downto 50));
-                    r_firstBlock <= r_currInstr(49);
-                    r_lastBlock <= r_currInstr(48);
-                    r_nMapRows <= unsigned(r_currInstr(47 downto 40));
-                    r_nMapColumns <= unsigned(r_currInstr(39 downto 32));
-                    r_mapSize <= unsigned(r_currInstr(47 downto 40))
-                                 * unsigned(r_currInstr(39 downto 32));
+                    r_computeMode <= CONV;
+                    r_computeConfig <= r_currInstr(59 downto 0);
 
                 when "0010" =>  -- Load base addresses
                     state <= FETCH_INSTR;
                     r_inBaseAddr <= unsigned(r_currInstr(59 downto 43));
-                    r_wgsBaseAddr <= unsigned(r_currInstr(42 downto 32));
-                    r_psumBaseAddr <= unsigned(r_currInstr(31 downto 23));
+                    r_wsBaseAddr <= unsigned(r_currInstr(42 downto 32));
+                    r_psBaseAddr <= unsigned(r_currInstr(31 downto 23));
                     r_outBaseAddr <= unsigned(r_currInstr(22 downto 14));
                 
                 when "0011" =>  -- Enqueue a DMA transfer
@@ -140,6 +140,11 @@ begin
 
                 when "0100" =>  -- Wait until DMA transfers are completed
                     state <= WAIT_DMA;
+
+                when "0101" => -- Start fully-connected computation
+                    state <= PIPE_FILL1;
+                    r_computeMode <= FC;
+                    r_computeConfig <= r_currInstr(59 downto 0);
                 
                 when others =>
                     state <= STOP;
@@ -153,7 +158,9 @@ begin
                 state <= COMPUTE;
                 
             when COMPUTE =>
-                if s_done = '1' then
+                if ((s_doneConv = '1' and r_computeMode = CONV)
+                    or (s_doneFC = '1' and r_computeMode = FC))
+                then 
                     state <= FETCH_INSTR;
                 end if;
             
@@ -182,7 +189,7 @@ begin
                 o_rstCtrlReg <= '0';
             end if;
         when DECODE_INSTR =>
-            if r_currInstr(63 downto 60) = "0001" then
+            if r_currInstr(63 downto 60) = "0001" or r_currInstr(63 downto 60) = "0101" then
                 s_start <= '1';
             else
                 s_start <= '0';
@@ -194,83 +201,100 @@ begin
         end case;
     end process;
 
+    s_firstBlock <= r_computeConfig(49);
+    s_lastBlock <= r_computeConfig(48);
 
     o_clearAccum <= '1' when state = COMPUTE 
-                             and s_save = '1' 
-                             and r_firstBlock = '1'
+                             and ((s_saveConv = '1' and r_computeMode = CONV)
+                                  or (s_saveFC = '1' and r_computeMode = FC))
+                             and s_firstBlock = '1'
                     else '0';
 
     o_loadPartSum <= '1' when state = COMPUTE
-                              and s_save = '1'
-                              and r_firstBlock = '0'
+                              and ((s_saveConv = '1' and r_computeMode = CONV)
+                                   or (s_saveFC = '1' and r_computeMode = FC))
+                              and s_firstBlock = '0'
                      else '0';
 
     -- If the current block is the last layer save the results with the 
     -- activation function, otherwise save the partial sums
-    o_enActivation <= '1' when r_lastBlock = '1'
+    o_enActivation <= '1' when s_lastBlock = '1'
                       else '0';
     
     o_addrEn <= '1' when state = COMPUTE else '0';
 
-    o_inBufEn <= '1' when state = COMPUTE
-                 else '0';
+    o_inBufEn <= '1' when state = COMPUTE else '0';
 
-    o_wgsBufEn <= '1' when state = COMPUTE
-                  else '0';
+    o_inBufAddr <= s_inBufAddrConv when r_computeMode = CONV
+                   else s_inBufAddrFC;
+
+    o_wsBufEn <= '1' when state = COMPUTE else '0';
+
+    o_wsBufAddr <= s_wsBufAddrConv when r_computeMode = CONV
+                   else s_wsBufAddrFC;
     
-    o_psumBufEn <= '1' when state = COMPUTE
-                   else '0';
+    o_psBufEn <= '1' when state = COMPUTE else '0';
+
+    o_psBufAddr <= s_psBufAddrConv when r_computeMode = CONV
+                   else s_psBufAddrFC;
     
-    o_outBufEn <= '1' when state = COMPUTE
-        else '0';
+    o_outBufEn <= '1' when state = COMPUTE else '0';
+    
+    o_outBufAddr <= s_outBufAddrConv when r_computeMode = CONV
+                    else s_outBufAddrFC;
 
     -- The CUs write two time to the first map position
     -- the first while filling the pipeline
     -- the second is the correct result and overwrite the first
-    o_outBufWe <= '1' when state = COMPUTE and s_save = '1'
-        else '0';
+    o_outBufWe <= '1' when state = COMPUTE and ((s_saveConv = '1' and r_computeMode = CONV)
+                                                or (s_saveFC = '1' and r_computeMode = FC))
+                  else '0';
 
     o_enqueueReq <= '1' when state = DECODE_INSTR and r_currInstr(63 downto 60) = "0011"
                     else '0';
 
     o_queueDataIn <= r_currInstr when state = DECODE_INSTR and r_currInstr(63 downto 60) = "0011"
                      else (others => '0');
-
-
-    counters : entity work.counters
+    
+    
+    convolution_controller : entity work.conv_controller
     port map (
         clk             => clk,
         i_start         => s_start,
         i_stall         => i_stall,
-        i_lastChanIdx   => r_lastChanIdx,
-        i_nMapRows      => r_nMapRows,
-        i_nMapColumns   => r_nMapColumns,
-        o_weightIdx     => s_weightIdx,
-        o_channelIdx    => s_channelIdx,
-        o_mapIdx        => s_mapIdx,
-        o_mapIdxOld     => s_mapIdxOld,
-        o_save          => s_save,
-        o_done          => s_done
+        i_mapSize       => unsigned(r_computeConfig(31 downto 16)),
+        i_lastChanIdx   => unsigned(r_computeConfig(59 downto 50)),
+        i_nMapRows      => unsigned(r_computeConfig(47 downto 40)),
+        i_nMapColumns   => unsigned(r_computeConfig(39 downto 32)),
+        i_inBaseAddr    => r_inBaseAddr,
+        i_wsBaseAddr    => r_wsBaseAddr,
+        i_psBaseAddr    => r_psBaseAddr,
+        i_outBaseAddr   => r_outBaseAddr,
+        o_inBufAddr     => s_inBufAddrConv,
+        o_wsBufAddr     => s_wsBufAddrConv,
+        o_psBufAddr     => s_psBufAddrConv,
+        o_outBufAddr    => s_outBufAddrConv,
+        o_save          => s_saveConv,
+        o_done          => s_doneConv
     );
 
-    addresses_generator : entity work.addr_generator
+    fully_connect_controller : entity work.fc_controller
     port map (
         clk             => clk,
+        i_start         => s_start,
         i_stall         => i_stall,
+        i_nWeights      => unsigned(r_computeConfig(58 downto 50)),
+        i_nNeurons      => unsigned(r_computeConfig(39 downto 38)),
         i_inBaseAddr    => r_inBaseAddr,
-        i_wgsBaseAddr   => r_wgsBaseAddr,
-        i_psumBaseAddr  => r_psumBaseAddr,
+        i_wsBaseAddr    => r_wsBaseAddr,
+        i_psBaseAddr    => r_psBaseAddr,
         i_outBaseAddr   => r_outBaseAddr,
-        i_weightIdx     => s_weightIdx,
-        i_channelIdx    => s_channelIdx,
-        i_mapIdx        => s_mapIdx,
-        i_mapIdxOld     => s_mapIdxOld,
-        i_mapSize       => r_mapSize,
-        i_nMapColumns   => r_nMapColumns,
-        o_inBufAddr     => o_inBufAddr,
-        o_wgsBufAddr    => o_wgsBufAddr,
-        o_psumBufAddr   => o_psumBufAddr,
-        o_outBufAddr    => o_outBufAddr
+        o_inBufAddr     => s_inBufAddrFC,
+        o_wsBufAddr     => s_wsBufAddrFC,
+        o_psBufAddr     => s_psBufAddrFC,
+        o_outBufAddr    => s_outBufAddrFC,
+        o_save          => s_saveFC,
+        o_done          => s_doneFC
     );
 
 end arch;

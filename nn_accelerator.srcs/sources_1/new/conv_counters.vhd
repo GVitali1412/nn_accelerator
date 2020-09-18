@@ -3,7 +3,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 
-entity counters is
+entity conv_counters is
     generic (
         KERNEL_SIZE     : positive := 9;
         MAX_N_CHANNELS  : positive := 1024;
@@ -25,9 +25,9 @@ entity counters is
         o_save          : out std_logic;
         o_done          : out std_logic
     );
-end counters;
+end conv_counters;
 
-architecture arch of counters is
+architecture arch of conv_counters is
 
     type mapPos_type is (N, NE, E, SE, S, SW, W, NW, C);
     signal r_mapPos         : mapPos_type;
@@ -39,7 +39,7 @@ architecture arch of counters is
     signal r_row            : natural range 0 to MAX_N_MAP_ROWS - 1;
     signal r_column         : natural range 0 to MAX_N_MAP_COL - 1;
 
-    signal r_done           : std_logic;
+    signal r_done           : std_logic := '0';
 
     -- Shift register to assert the o_save with a delay of 5 clock cycles
     signal r_shiftSave      : std_logic_vector(4 downto 0);
